@@ -1,2 +1,35 @@
 # Ignore spec directories
 **/spec/
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+.env
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Backend data
+data/
+chroma_db/
+graph_backup.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Agents
+.agents/
