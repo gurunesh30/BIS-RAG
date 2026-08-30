@@ -1,14 +1,15 @@
 @import "tw-animate-css";
-@import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --font-sans: DM Sans, sans-serif;
-    --font-mono: Space Mono, monospace;
+    --font-sans: "DM Sans", sans-serif;
+    --font-mono: "Space Mono", monospace;
+    --font-serif: "DM Sans", sans-serif;
     --background: oklch(0.9789 0.0082 121.6272);
     --foreground: oklch(0 0 0);
     --card: oklch(1.0000 0 0);
@@ -42,7 +43,6 @@
     --sidebar-accent-foreground: oklch(0 0 0);
     --sidebar-border: oklch(0 0 0);
     --sidebar-ring: oklch(0.7853 0.1041 274.7134);
-    --font-serif: DM Sans, sans-serif;
     --shadow-color: #1a1a1a;
     --shadow-opacity: 0.05;
     --shadow-blur: 0px;
@@ -60,11 +60,13 @@
     --shadow-xl: 0px 0px 0px 0px hsl(0 0% 10.1961% / 0.05), 0px 8px 10px -1px hsl(0 0% 10.1961% / 0.05);
     --shadow-2xl: 0px 0px 0px 0px hsl(0 0% 10.1961% / 0.13);
     --tracking-normal: normal;
+    --card-spacing: 1rem;
   }
+
   .theme {
-    --font-sans: DM Sans, sans-serif;
-    --font-mono: Space Mono, monospace;
-    --font-serif: DM Sans, sans-serif;
+    --font-sans: "DM Sans", sans-serif;
+    --font-mono: "Space Mono", monospace;
+    --font-serif: "DM Sans", sans-serif;
     --radius: 1rem;
     --tracking-tighter: calc(var(--tracking-normal) - 0.05em);
     --tracking-tight: calc(var(--tracking-normal) - 0.025em);
@@ -72,6 +74,7 @@
     --tracking-wider: calc(var(--tracking-normal) + 0.05em);
     --tracking-widest: calc(var(--tracking-normal) + 0.1em);
   }
+
   .dark {
     --background: oklch(0 0 0);
     --foreground: oklch(1.0000 0 0);
@@ -97,7 +100,6 @@
     --chart-3: oklch(0.8790 0.1534 91.6054);
     --chart-4: oklch(0.7253 0.1752 349.7607);
     --chart-5: oklch(0.8003 0.1821 151.7110);
-    --radius: 1rem;
     --sidebar: oklch(0 0 0);
     --sidebar-foreground: oklch(1.0000 0 0);
     --sidebar-primary: oklch(0.6801 0.1583 276.9349);
@@ -106,17 +108,6 @@
     --sidebar-accent-foreground: oklch(0 0 0);
     --sidebar-border: oklch(1.0000 0 0);
     --sidebar-ring: oklch(0.6801 0.1583 276.9349);
-    --font-sans: DM Sans, sans-serif;
-    --font-serif: DM Sans, sans-serif;
-    --font-mono: Space Mono, monospace;
-    --shadow-color: #1a1a1a;
-    --shadow-opacity: 0.05;
-    --shadow-blur: 0px;
-    --shadow-spread: 0px;
-    --shadow-offset-x: 0px;
-    --shadow-offset-y: 0px;
-    --letter-spacing: normal;
-    --spacing: 0.25rem;
     --shadow-2xs: 0px 0px 0px 0px hsl(0 0% 10.1961% / 0.03);
     --shadow-xs: 0px 0px 0px 0px hsl(0 0% 10.1961% / 0.03);
     --shadow-sm: 0px 0px 0px 0px hsl(0 0% 10.1961% / 0.05), 0px 1px 2px -1px hsl(0 0% 10.1961% / 0.05);
@@ -126,8 +117,27 @@
     --shadow-xl: 0px 0px 0px 0px hsl(0 0% 10.1961% / 0.05), 0px 8px 10px -1px hsl(0 0% 10.1961% / 0.05);
     --shadow-2xl: 0px 0px 0px 0px hsl(0 0% 10.1961% / 0.13);
   }
+
   body {
     letter-spacing: var(--tracking-normal);
+  }
+
+  /* Base-UI data-state variants for animations */
+  [data-state="open"] {
+    animation-name: var(--tw-enter-animation, none);
+  }
+  [data-state="closed"] {
+    animation-name: var(--tw-exit-animation, none);
+  }
+
+  /* Custom data-attribute variants used by @base-ui/react components */
+  [data-open]:not([data-open="false"]),
+  [data-state="open"] {
+    --data-open: 1;
+  }
+  [data-closed]:not([data-closed="false"]),
+  [data-state="closed"] {
+    --data-closed: 1;
   }
 }
 
@@ -148,4 +158,55 @@ body {
 
 .text-balance {
   text-wrap: balance;
+}
+
+/* Polyfill Tailwind v4 animate utilities used by @base-ui/react components */
+.data-open\:animate-in[data-state="open"],
+.data-open\:animate-in[data-open]:not([data-open="false"]) {
+  animation-duration: 150ms;
+  animation-fill-mode: both;
+  animation-name: enter;
+}
+
+.data-closed\:animate-out[data-state="closed"],
+.data-closed\:animate-out[data-closed]:not([data-closed="false"]) {
+  animation-duration: 150ms;
+  animation-fill-mode: both;
+  animation-name: exit;
+}
+
+.data-open\:fade-in-0[data-state="open"],
+.data-open\:fade-in-0[data-open]:not([data-open="false"]) {
+  --tw-enter-opacity: 0;
+}
+
+.data-closed\:fade-out-0[data-state="closed"],
+.data-closed\:fade-out-0[data-closed]:not([data-closed="false"]) {
+  --tw-exit-opacity: 0;
+}
+
+.data-open\:zoom-in-95[data-state="open"],
+.data-open\:zoom-in-95[data-open]:not([data-open="false"]) {
+  --tw-enter-scale: 0.95;
+}
+
+.data-closed\:zoom-out-95[data-state="closed"],
+.data-closed\:zoom-out-95[data-closed]:not([data-closed="false"]) {
+  --tw-exit-scale: 0.95;
+}
+
+@keyframes enter {
+  from {
+    opacity: var(--tw-enter-opacity, 1);
+    transform: translate(var(--tw-enter-translate-x, 0), var(--tw-enter-translate-y, 0))
+      scale(var(--tw-enter-scale, 1)) rotate(var(--tw-enter-rotate, 0));
+  }
+}
+
+@keyframes exit {
+  to {
+    opacity: var(--tw-exit-opacity, 1);
+    transform: translate(var(--tw-exit-translate-x, 0), var(--tw-exit-translate-y, 0))
+      scale(var(--tw-exit-scale, 1)) rotate(var(--tw-exit-rotate, 0));
+  }
 }

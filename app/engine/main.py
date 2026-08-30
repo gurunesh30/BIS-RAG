@@ -36,8 +36,7 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 ingestion_engine = PDFIngestionEngine()
 vector_store = VectorStore()
 synthesizer = CitationSynthesizer(
-    openai_api_key=os.getenv("OPENAI_API_KEY"),
-    gemini_api_key=os.getenv("GEMINI_API_KEY")
+    openrouter_api_key=os.getenv("OPENROUTER_API_KEY")
 )
 graph_engine = KnowledgeGraphEngine(backup_path="./graph_backup.json")
 
@@ -68,8 +67,9 @@ class GraphAddNodeRequest(BaseModel):
 
 class GraphAddNodeResponse(BaseModel):
     success: bool
-    node_id: str
+    node_id: Optional[str] = None
     warning: Optional[str] = None
+    error: Optional[str] = None
 
 
 @app.get("/health")

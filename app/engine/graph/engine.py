@@ -237,31 +237,42 @@ class KnowledgeGraphEngine:
         }
 
     def add_graph_node(self, payload: Dict[str, Any]) -> Dict[str, Any]:
-        node_type_str = payload.get("node_type", "").upper()
-        try:
-            node_type = NodeType(node_type_str)
-        except ValueError:
-            return {"success": False, "error": f"Invalid node_type: {node_type_str}"}
+        node_type_raw = payload.get("node_type", "")
+        # Accept both title-case ("IndianStandard") and uppercase ("INDIANSTANDARD")
+        # by trying the raw value first, then matching case-insensitively against enum values
+        node_type: Optional[NodeType] = None
+        for nt in NodeType:
+            if nt.value.lower() == node_type_raw.lower() or nt.name.lower() == node_type_raw.lower():
+                node_type = nt
+                break
+        if node_type is None:
+            valid = [nt.value for nt in NodeType]
+            return {"success": False, "error": f"Invalid node_type: '{node_type_raw}'. Valid values: {valid}"}
 
         node_id = payload.get("node_id")
         if not node_id:
             return {"success": False, "error": "node_id is required"}
 
-        attributes = {k: v for k, v in payload.items() if k not in ("node_type", "node_id", "edge_to")}
+        attributes = {k: v for k, v in payload.items() if k not in ("node_type", "node_id", "edge_to", "edge_type")}
         node_data = NodeData(id=node_id, type=node_type, attributes=attributes)
 
-        created = self.add_node(node_data)
+        self.add_node(node_data)
 
         edge_to = payload.get("edge_to")
-        edge_type_str = payload.get("edge_type", "").upper()
-        if edge_to and edge_type_str:
-            try:
-                edge_type = EdgeType(edge_type_str)
-            except ValueError:
-                return {"success": created, "warning": f"Node created but invalid edge_type: {edge_type_str}"}
+        edge_type_raw = payload.get("edge_type", "")
+        if edge_to and edge_type_raw:
+            edge_type: Optional[EdgeType] = None
+            for et in EdgeType:
+                if et.value.lower() == edge_type_raw.lower() or et.name.lower() == edge_type_raw.lower():
+                    edge_type = et
+                    break
+            if edge_type is None:
+                valid_edges = [et.value for et in EdgeType]
+                return {"success": True, "node_id": node_id, "warning": f"Node added but invalid edge_type: '{edge_type_raw}'. Valid values: {valid_edges}"}
             edge_attrs = {k: v for k, v in payload.items() if k not in ("node_type", "node_id", "edge_to", "edge_type")}
             edge_data = EdgeData(source=node_id, target=edge_to, type=edge_type, attributes=edge_attrs)
-            self.add_edge(edge_data)
+            if not self.add_edge(edge_data):
+                return {"success": True, "node_id": node_id, "warning": f"Node added but edge target '{edge_to}' does not exist in graph"}
 
         return {"success": True, "node_id": node_id}
 

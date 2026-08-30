@@ -21,9 +21,9 @@ class SynthesisResult:
 
 
 class CitationSynthesizer:
-    def __init__(self, openai_api_key: Optional[str] = None, gemini_api_key: Optional[str] = None):
-        self.openai_api_key = openai_api_key
-        self.gemini_api_key = gemini_api_key
+    def __init__(self, openrouter_api_key: Optional[str] = None, openrouter_model: str = "openai/gpt-4o-mini"):
+        self.openrouter_api_key = openrouter_api_key
+        self.openrouter_model = openrouter_model
 
     def synthesize(self, query: str, contexts: List[Dict[str, Any]]) -> SynthesisResult:
         if not contexts:
@@ -32,10 +32,8 @@ class CitationSynthesizer:
                 citations=[]
             )
 
-        if self.openai_api_key:
-            return self._synthesize_openai(query, contexts)
-        if self.gemini_api_key:
-            return self._synthesize_gemini(query, contexts)
+        if self.openrouter_api_key:
+            return self._synthesize_openrouter(query, contexts)
 
         return self._synthesize_fallback(query, contexts)
 
@@ -90,14 +88,17 @@ class CitationSynthesizer:
 
         return citations
 
-    def _synthesize_openai(self, query: str, contexts: List[Dict[str, Any]]) -> SynthesisResult:
+    def _synthesize_openrouter(self, query: str, contexts: List[Dict[str, Any]]) -> SynthesisResult:
         try:
             import openai
-            client = openai.OpenAI(api_key=self.openai_api_key)
+            client = openai.OpenAI(
+                api_key=self.openrouter_api_key,
+                base_url="https://openrouter.ai/api/v1"
+            )
 
             prompt = self._build_context_prompt(query, contexts)
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model=self.openrouter_model,
                 messages=[
                     {"role": "system", "content": "You are a citation-based assistant for IS codebooks."},
                     {"role": "user", "content": prompt}
@@ -106,20 +107,6 @@ class CitationSynthesizer:
                 max_tokens=1024
             )
             answer = response.choices[0].message.content.strip()
-            citations = self._parse_citations(answer, contexts)
-            return SynthesisResult(answer=answer, citations=citations)
-        except Exception:
-            return self._synthesize_fallback(query, contexts)
-
-    def _synthesize_gemini(self, query: str, contexts: List[Dict[str, Any]]) -> SynthesisResult:
-        try:
-            import google.generativeai as genai
-            genai.configure(api_key=self.gemini_api_key)
-            model = genai.GenerativeModel("gemini-2.0-flash")
-
-            prompt = self._build_context_prompt(query, contexts)
-            response = model.generate_content(prompt)
-            answer = response.text.strip()
             citations = self._parse_citations(answer, contexts)
             return SynthesisResult(answer=answer, citations=citations)
         except Exception:
