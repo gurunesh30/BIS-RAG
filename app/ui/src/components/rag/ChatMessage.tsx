@@ -1,4 +1,5 @@
 import { CitationBadge } from '@/components/rag/CitationBadge'
+import { User, Bot } from 'lucide-react'
 import type { Citation } from '@/types'
 
 interface ChatMessageProps {
@@ -7,11 +8,6 @@ interface ChatMessageProps {
   citations?: Citation[]
   timestamp: Date
 }
-
-const userBg = 'bg-card'
-const assistantBg = 'bg-muted/30'
-
-
 
 interface ParsedSegment {
   type: 'text' | 'citation'
@@ -79,34 +75,42 @@ export function ChatMessage({
 
   return (
     <div
-      className={`
-        mx-auto max-w-[800px] px-4 py-3
-        ${role === 'user' ? userBg : assistantBg}
-        rounded-2xl
-      `}
+      className={`mx-auto flex w-full max-w-4xl gap-3 animate-fade-in ${
+        role === 'user' ? 'flex-row-reverse' : 'flex-row'
+      }`}
     >
-      <div className="flex items-start gap-3">
-        <span
-          className={`
-            mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold
-            ${
-  role === 'user'
-    ? 'bg-primary text-primary-foreground'
-    : 'bg-secondary text-secondary-foreground'
-}
-          `}
+      {/* Avatar */}
+      <div
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl font-bold shadow-sm ${
+          role === 'user'
+            ? 'bg-gradient-to-tr from-primary to-accent text-primary-foreground shadow-primary/20'
+            : 'bg-gradient-to-tr from-secondary via-teal-500 to-emerald-500 text-white shadow-secondary/20'
+        }`}
+      >
+        {role === 'user' ? (
+          <User className="h-4 w-4" />
+        ) : (
+          <Bot className="h-4 w-4" />
+        )}
+      </div>
+
+      {/* Message Content Container */}
+      <div className={`flex flex-col max-w-[85%] ${role === 'user' ? 'items-end' : 'items-start'}`}>
+        <div
+          className={`p-4 transition-all ${
+            role === 'user'
+              ? 'rounded-2xl rounded-tr-xs bg-gradient-to-r from-primary via-indigo-600 to-indigo-700 text-white shadow-md'
+              : 'rounded-2xl rounded-tl-xs border border-border/80 bg-card/85 backdrop-blur-md text-card-foreground shadow-sm'
+          }`}
         >
-          {role === 'user' ? 'U' : 'AI'}
-        </span>
-        <div className="flex-1 space-y-2">
-          <div className="prose prose-sm max-w-none dark:prose-invert">
+          <div className="prose prose-sm max-w-none leading-relaxed text-inherit">
             {segments.map((seg, i) => {
               if (seg.type === 'citation' && seg.citation) {
                 return (
                   <CitationBadge
                     key={i}
                     citation={seg.citation}
-                    className="my-1 inline-block"
+                    className="mx-1 my-0.5 align-middle"
                   />
                 )
               }
@@ -117,21 +121,30 @@ export function ChatMessage({
               )
             })}
           </div>
+
+          {/* Citations Footer */}
           {citations && citations.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {citations.map((cit, i) => (
-                <CitationBadge key={i} citation={cit} />
-              ))}
+            <div className="mt-3.5 pt-3 border-t border-border/40 flex flex-col gap-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Verified Clause Citations ({citations.length}):
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {citations.map((cit, i) => (
+                  <CitationBadge key={i} citation={cit} />
+                ))}
+              </div>
             </div>
           )}
         </div>
+
+        {/* Timestamp */}
+        <time className="mt-1 px-1 text-[11px] font-medium text-muted-foreground/80">
+          {timestamp.toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+          })}
+        </time>
       </div>
-      <time className="mt-2 block text-xs text-muted-foreground">
-        {timestamp.toLocaleTimeString([], {
-          hour: '2-digit',
-          minute: '2-digit',
-        })}
-      </time>
     </div>
   )
 }

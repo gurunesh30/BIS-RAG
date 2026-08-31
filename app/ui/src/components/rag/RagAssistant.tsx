@@ -3,11 +3,10 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import {
   Loader2, Send, FileText, ExternalLink,
-  Upload, X, BookOpen, ChevronDown, ChevronUp,
+  Upload, X, BookOpen, ChevronDown, ChevronUp, Sparkles, Filter, CheckCircle2, AlertCircle, Trash2
 } from 'lucide-react'
 import { ChatMessage } from '@/components/rag/ChatMessage'
 import { SourceDrawer } from '@/components/rag/SourceDrawer'
@@ -173,37 +172,43 @@ export function RagAssistant() {
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex h-[calc(100vh-73px)] flex-col">
+    <div className="flex flex-col h-full overflow-hidden bg-background">
 
       {/* ── Ingest panel ── */}
-      <div className="border-b border-border bg-card/40">
+      <div className="border-b border-border bg-card/60 backdrop-blur-md shrink-0">
         <button
           type="button"
           onClick={() => setIngestOpen((v) => !v)}
-          className="flex w-full items-center gap-2 px-6 py-2.5 text-sm font-medium text-foreground/80 hover:text-foreground"
+          className="flex w-full items-center justify-between px-6 py-3 text-sm font-semibold text-foreground hover:bg-muted/30 transition-colors"
         >
-          <BookOpen className="h-4 w-4" />
-          Manage IS Codebooks
-          <span className="ml-1 text-xs text-muted-foreground">
-            ({indexedCodes.length} indexed)
-          </span>
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <BookOpen className="h-4 w-4" />
+            </div>
+            <span>Manage IS Codebooks</span>
+            <Badge variant="secondary" className="rounded-full px-2.5 py-0.5 text-xs font-mono">
+              {indexedCodes.length} indexed
+            </Badge>
+          </div>
           {ingestOpen ? (
-            <ChevronUp className="ml-auto h-4 w-4" />
+            <ChevronUp className="h-4 w-4 text-muted-foreground" />
           ) : (
-            <ChevronDown className="ml-auto h-4 w-4" />
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
           )}
         </button>
 
         {ingestOpen && (
-          <div className="px-6 pb-4 space-y-4">
+          <div className="px-6 pb-4 pt-1 space-y-4 animate-fade-in border-t border-border/40 bg-muted/20">
             {/* Upload row */}
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3 pt-2">
               <label
                 htmlFor="pdf-upload"
-                className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-border bg-muted/30 px-4 py-2.5 text-sm text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                className="flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-primary/40 bg-card px-4 py-2 text-sm text-foreground transition-all hover:border-primary hover:bg-primary/5 hover:shadow-xs"
               >
-                <Upload className="h-4 w-4" />
-                {ingestFile ? ingestFile.name : 'Choose IS codebook PDF…'}
+                <Upload className="h-4 w-4 text-primary" />
+                <span className="font-medium">
+                  {ingestFile ? ingestFile.name : 'Choose IS Codebook PDF…'}
+                </span>
               </label>
               <input
                 id="pdf-upload"
@@ -217,11 +222,12 @@ export function RagAssistant() {
                 size="sm"
                 disabled={!ingestFile || isIngesting}
                 onClick={handleIngest}
+                className="rounded-xl bg-gradient-to-r from-primary to-indigo-600 text-primary-foreground shadow-sm hover:opacity-95"
               >
                 {isIngesting ? (
-                  <><Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />Indexing…</>
+                  <><Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />Indexing PDF…</>
                 ) : (
-                  <><Upload className="h-3.5 w-3.5 mr-1.5" />Ingest</>
+                  <><Upload className="h-3.5 w-3.5 mr-1.5" />Ingest &amp; Vectorize</>
                 )}
               </Button>
               {ingestFile && !isIngesting && (
@@ -231,7 +237,7 @@ export function RagAssistant() {
                     setIngestFile(null)
                     if (fileInputRef.current) fileInputRef.current.value = ''
                   }}
-                  className="text-muted-foreground hover:text-foreground"
+                  className="rounded-lg p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -240,75 +246,100 @@ export function RagAssistant() {
 
             {/* Feedback */}
             {ingestResult && (
-              <p className="text-xs text-green-600 dark:text-green-400">
-                ✓ Ingested <strong>{ingestResult.filename}</strong> — {ingestResult.chunks} chunks indexed.
-              </p>
+              <div className="flex items-center gap-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                <CheckCircle2 className="h-4 w-4 shrink-0" />
+                Successfully indexed <strong>{ingestResult.filename}</strong> &mdash; {ingestResult.chunks} chunks vector embeddings added.
+              </div>
             )}
             {ingestError && (
-              <p className="text-xs text-destructive">{ingestError}</p>
+              <div className="flex items-center gap-2 rounded-lg bg-destructive/10 border border-destructive/20 px-3 py-2 text-xs font-medium text-destructive">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                {ingestError}
+              </div>
             )}
 
-            {/* Indexed codes */}
+            {/* Indexed codes list */}
             {indexedCodes.length > 0 && (
-              <>
-                <Separator />
-                <div className="flex flex-wrap gap-1.5">
-                  <span className="text-xs text-muted-foreground self-center">Indexed:</span>
+              <div className="pt-2 space-y-2">
+                <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
+                  <span>Active Indexed Standards</span>
+                  <span>Click trash to purge index</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
                   {indexedCodes.map((code) => (
                     <span
                       key={code}
-                      className="flex items-center gap-1 rounded-full border border-border bg-muted px-2.5 py-0.5 text-xs font-medium"
+                      className="group flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1 text-xs font-mono font-semibold text-foreground shadow-2xs hover:border-primary/40"
                     >
+                      <BookOpen className="h-3.5 w-3.5 text-primary" />
                       {code}
                       <button
                         type="button"
                         onClick={() => void handleDeleteCode(code)}
-                        className="ml-0.5 text-muted-foreground hover:text-destructive"
-                        title={`Remove ${code}`}
+                        className="ml-1 rounded p-0.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                        title={`Purge ${code} from collection`}
                       >
-                        <X className="h-3 w-3" />
+                        <Trash2 className="h-3 w-3" />
                       </button>
                     </span>
                   ))}
                 </div>
-              </>
+              </div>
             )}
           </div>
         )}
       </div>
 
       {/* ── Chat area ── */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden relative">
         <ScrollArea ref={scrollAreaRef} className="h-full">
-          <div className="space-y-4 p-6">
+          <div className="space-y-6 p-6 pb-24">
             {messages.length === 0 ? (
-              <div className="flex h-full min-h-[400px] flex-col items-center justify-center gap-4">
-                <div className="text-center">
-                  <FileText className="mx-auto mb-4 h-12 w-12 text-muted-foreground/50" />
-                  <h2 className="font-heading text-xl font-semibold text-foreground">
-                    Standards Assistant (RAG)
-                  </h2>
-                  <p className="mt-2 max-w-md text-sm text-muted-foreground">
-                    Ask questions about Indian Standard (IS) codebooks. Responses include
-                    inline clause and page citations linked to the exact source text.
-                  </p>
-                  {indexedCodes.length === 0 && (
-                    <p className="mt-3 text-xs text-amber-600 dark:text-amber-400">
-                      No codebooks indexed yet — use the panel above to upload IS PDFs first.
-                    </p>
-                  )}
+              <div className="mx-auto flex h-full min-h-[440px] max-w-2xl flex-col items-center justify-center text-center p-6 space-y-6">
+                <div className="relative">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-tr from-primary via-indigo-600 to-accent text-primary-foreground shadow-xl shadow-primary/25 animate-pulse">
+                    <Sparkles className="h-8 w-8" />
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-2 justify-center">
-                  {samplePrompts.map((prompt, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => handlePromptClick(prompt)}
-                      className="rounded-lg border border-border bg-card px-3 py-2 text-left text-sm text-foreground/80 hover:border-primary/30 hover:bg-muted/50"
-                    >
-                      {prompt}
-                    </button>
-                  ))}
+
+                <div className="space-y-2">
+                  <h2 className="font-heading text-2xl font-bold tracking-tight text-foreground gradient-text-primary">
+                    BIS Standards Citation Assistant
+                  </h2>
+                  <p className="max-w-md text-sm text-muted-foreground leading-relaxed">
+                    Ask technical standards questions on Indian Standard (IS) codes. Get exact clause, section, and page level citations backed by vector search.
+                  </p>
+                </div>
+
+                {indexedCodes.length === 0 ? (
+                  <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-xs text-amber-600 dark:text-amber-400 max-w-md flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    <span>No IS codebooks indexed yet. Click "Manage IS Codebooks" above to upload PDF documents.</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-full">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Ready &mdash; {indexedCodes.length} IS standard codebooks indexed
+                  </div>
+                )}
+
+                <div className="w-full pt-2">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-3">
+                    Suggested Standard Queries
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-left">
+                    {samplePrompts.map((prompt, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => handlePromptClick(prompt)}
+                        className="group flex items-start gap-2.5 rounded-xl border border-border/80 bg-card p-3 text-xs text-foreground/90 transition-all duration-200 hover:border-primary/50 hover:bg-primary/5 hover:shadow-xs"
+                      >
+                        <FileText className="h-4 w-4 text-primary shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
+                        <span className="font-medium leading-snug">{prompt}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             ) : (
@@ -322,15 +353,17 @@ export function RagAssistant() {
                 />
               ))
             )}
+
             {isLoading && (
-              <div className="mx-auto max-w-[800px] px-4 py-3">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Retrieving clause citations
+              <div className="mx-auto max-w-4xl px-4 py-3">
+                <div className="flex items-center gap-3 rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary animate-pulse shadow-xs">
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  <span className="font-medium">Searching indexed vector chunks &amp; generating cited response</span>
                   {selectedCode !== 'all' && (
-                    <Badge variant="secondary" className="text-xs">{selectedCode}</Badge>
+                    <Badge variant="secondary" className="text-xs font-mono ml-auto">
+                      Filter: {selectedCode}
+                    </Badge>
                   )}
-                  …
                 </div>
               </div>
             )}
@@ -339,21 +372,23 @@ export function RagAssistant() {
       </div>
 
       {/* ── Input bar ── */}
-      <div className="border-t border-border p-4">
-        <div className="mx-auto max-w-[800px] space-y-2">
-          {/* Filter + source chunks row */}
-          <div className="flex items-center gap-2">
-            {/* IS code filter */}
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs text-muted-foreground whitespace-nowrap">Filter by:</span>
+      <div className="border-t border-border bg-card/80 backdrop-blur-xl p-4 shrink-0 shadow-lg">
+        <div className="mx-auto max-w-4xl space-y-2.5">
+          {/* Controls bar */}
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Filter Standard:</span>
               <Select value={selectedCode} onValueChange={(v) => setSelectedCode(v as string)}>
-                <SelectTrigger className="h-7 w-[160px] text-xs">
+                <SelectTrigger className="h-8 w-[170px] text-xs font-mono rounded-xl bg-background border-border/80">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All standards</SelectItem>
+                  <SelectItem value="all">All Standards ({indexedCodes.length})</SelectItem>
                   {indexedCodes.map((code) => (
-                    <SelectItem key={code} value={code}>{code}</SelectItem>
+                    <SelectItem key={code} value={code} className="font-mono text-xs">
+                      {code}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -361,43 +396,45 @@ export function RagAssistant() {
 
             {messages.length > 0 && (
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 onClick={() => setDrawerOpen(true)}
                 disabled={latestChunks.length === 0}
-                className="ml-auto h-7 text-xs"
+                className="h-8 text-xs gap-1.5 rounded-xl border-primary/30 text-primary hover:bg-primary/10"
               >
-                <ExternalLink className="h-3.5 w-3.5 mr-1" />
-                Show Source Chunks
+                <ExternalLink className="h-3.5 w-3.5" />
+                Source Chunks ({latestChunks.length})
               </Button>
             )}
           </div>
 
-          {/* Textarea + send */}
-          <div className="flex gap-2">
-            <Textarea
-              ref={textAreaRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={
-                selectedCode !== 'all'
-                  ? `Ask about ${selectedCode}…`
-                  : 'Ask about an IS standard…'
-              }
-              className="min-h-[44px] max-h-32 resize-none"
-              rows={1}
-              disabled={isLoading}
-            />
+          {/* Textarea + Send button */}
+          <div className="flex items-end gap-2.5">
+            <div className="relative flex-1">
+              <Textarea
+                ref={textAreaRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={
+                  selectedCode !== 'all'
+                    ? `Ask technical question on ${selectedCode}… (Press Enter to send)`
+                    : 'Ask technical question on IS standards… (Press Enter to send)'
+                }
+                className="min-h-[50px] max-h-36 resize-none rounded-xl border-border/80 bg-background/90 px-4 py-3 text-sm focus-visible:ring-primary/40 shadow-inner"
+                rows={1}
+                disabled={isLoading}
+              />
+            </div>
             <Button
               onClick={() => void handleSubmit()}
               disabled={!input.trim() || isLoading}
-              className="h-[44px] shrink-0"
+              className="h-[50px] px-5 rounded-xl bg-gradient-to-r from-primary via-indigo-600 to-accent text-primary-foreground shadow-md shadow-primary/25 hover:opacity-95 shrink-0 transition-transform active:scale-95"
             >
               {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
-                <Send className="h-4 w-4" />
+                <Send className="h-5 w-5" />
               )}
             </Button>
           </div>
