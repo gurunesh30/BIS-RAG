@@ -15,9 +15,10 @@ import {
   DrawerHeader,
   DrawerTitle,
   DrawerFooter,
+  DrawerDescription,
 } from '@/components/ui/drawer'
 import { Separator } from '@/components/ui/separator'
-import { Save, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { Save, Loader2, AlertCircle, CheckCircle2, PlusCircle, Network } from 'lucide-react'
 import { addNode } from '@/lib/api'
 
 type NodeType = 'License' | 'Product' | 'Manufacturer' | 'IndianStandard' | 'TestLab'
@@ -89,14 +90,13 @@ export function AddNodeDrawer({ open, onOpenChange, onSuccess }: AddNodeDrawerPr
     setIsSubmitting(true)
     setResult(null)
 
-    // Build flat payload matching the backend's add_graph_node expectations
+    // Build flat payload matching backend expectations
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const payload: Record<string, any> = {
       node_id: form.nodeId.trim(),
       node_type: form.nodeType,
     }
 
-    // Node-type-specific attributes
     switch (form.nodeType) {
       case 'License':
         payload.status = form.licenseStatus
@@ -119,7 +119,6 @@ export function AddNodeDrawer({ open, onOpenChange, onSuccess }: AddNodeDrawerPr
         break
     }
 
-    // Edge connection (optional)
     if (form.connectEdge && form.edgeTo.trim()) {
       payload.edge_to = form.edgeTo.trim()
       payload.edge_type = form.edgeType
@@ -134,10 +133,9 @@ export function AddNodeDrawer({ open, onOpenChange, onSuccess }: AddNodeDrawerPr
           ok: true,
           message: res.warning
             ? `Node added. Warning: ${res.warning}`
-            : `Node "${res.node_id}" added successfully.`,
+            : `Node "${res.node_id}" added successfully to graph.`,
         })
         onSuccess?.()
-        // Reset form but keep drawer open so user can add more nodes
         setForm(defaultState())
       }
     } catch (err) {
@@ -151,27 +149,39 @@ export function AddNodeDrawer({ open, onOpenChange, onSuccess }: AddNodeDrawerPr
 
   return (
     <Drawer open={open} onOpenChange={handleOpenChange}>
-      <DrawerContent className="max-w-md mx-auto">
-        <DrawerHeader>
-          <DrawerTitle>Add Graph Node</DrawerTitle>
+      <DrawerContent className="max-w-lg mx-auto bg-card/95 backdrop-blur-xl border-border">
+        <DrawerHeader className="border-b border-border/60 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <PlusCircle className="h-5 w-5" />
+            </div>
+            <div>
+              <DrawerTitle className="text-base font-bold text-foreground">
+                Add Supply Chain Graph Node
+              </DrawerTitle>
+              <DrawerDescription className="text-xs text-muted-foreground">
+                Inject custom licenses, manufacturers, standards, products, or test labs into the graph topology.
+              </DrawerDescription>
+            </div>
+          </div>
         </DrawerHeader>
 
         <ScrollableBody>
-          <div className="space-y-4 p-4">
+          <div className="space-y-4 p-5">
 
-            {/* ── Node type ── */}
+            {/* Node type selection */}
             <div className="space-y-1.5">
-              <Label htmlFor="node-type">Node Type</Label>
+              <Label htmlFor="node-type" className="text-xs font-semibold">Node Type</Label>
               <Select
                 value={form.nodeType}
                 onValueChange={(v) => set('nodeType', v as NodeType)}
               >
-                <SelectTrigger id="node-type">
+                <SelectTrigger id="node-type" className="h-10 rounded-xl">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {(Object.keys(NODE_TYPE_LABELS) as NodeType[]).map((t) => (
-                    <SelectItem key={t} value={t}>
+                    <SelectItem key={t} value={t} className="text-xs font-medium">
                       {NODE_TYPE_LABELS[t]}
                     </SelectItem>
                   ))}
@@ -179,9 +189,9 @@ export function AddNodeDrawer({ open, onOpenChange, onSuccess }: AddNodeDrawerPr
               </Select>
             </div>
 
-            {/* ── Node ID ── */}
+            {/* Node ID */}
             <div className="space-y-1.5">
-              <Label htmlFor="node-id">
+              <Label htmlFor="node-id" className="text-xs font-semibold">
                 {form.nodeType === 'License' ? 'License Number' :
                  form.nodeType === 'IndianStandard' ? 'IS Code (e.g. IS456:2000)' :
                  'Node ID'}
@@ -197,19 +207,20 @@ export function AddNodeDrawer({ open, onOpenChange, onSuccess }: AddNodeDrawerPr
                 }
                 value={form.nodeId}
                 onChange={(e) => set('nodeId', e.target.value)}
+                className="h-10 rounded-xl"
               />
             </div>
 
-            {/* ── Type-specific fields ── */}
+            {/* Type-specific inputs */}
             {form.nodeType === 'License' && (
               <>
                 <div className="space-y-1.5">
-                  <Label htmlFor="license-status">Status</Label>
+                  <Label htmlFor="license-status" className="text-xs font-semibold">Status</Label>
                   <Select
                     value={form.licenseStatus}
                     onValueChange={(v) => set('licenseStatus', v as typeof form.licenseStatus)}
                   >
-                    <SelectTrigger id="license-status">
+                    <SelectTrigger id="license-status" className="h-10 rounded-xl">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -220,12 +231,15 @@ export function AddNodeDrawer({ open, onOpenChange, onSuccess }: AddNodeDrawerPr
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="expiry-date">Expiry Date <span className="text-muted-foreground">(optional)</span></Label>
+                  <Label htmlFor="expiry-date" className="text-xs font-semibold">
+                    Expiry Date <span className="text-muted-foreground font-normal">(optional)</span>
+                  </Label>
                   <Input
                     id="expiry-date"
                     type="date"
                     value={form.expiryDate}
                     onChange={(e) => set('expiryDate', e.target.value)}
+                    className="h-10 rounded-xl"
                   />
                 </div>
               </>
@@ -233,7 +247,7 @@ export function AddNodeDrawer({ open, onOpenChange, onSuccess }: AddNodeDrawerPr
 
             {(form.nodeType === 'Product' || form.nodeType === 'Manufacturer') && (
               <div className="space-y-1.5">
-                <Label htmlFor="name">
+                <Label htmlFor="name" className="text-xs font-semibold">
                   {form.nodeType === 'Manufacturer' ? 'Manufacturer Name' : 'Product Name'}
                 </Label>
                 <Input
@@ -245,23 +259,24 @@ export function AddNodeDrawer({ open, onOpenChange, onSuccess }: AddNodeDrawerPr
                   }
                   value={form.name}
                   onChange={(e) => set('name', e.target.value)}
+                  className="h-10 rounded-xl"
                 />
               </div>
             )}
 
             {form.nodeType === 'Manufacturer' && (
               <div className="space-y-1.5">
-                <Label htmlFor="factory-reg">Factory Registration</Label>
+                <Label htmlFor="factory-reg" className="text-xs font-semibold">Factory Registration Status</Label>
                 <Select
                   value={form.factoryActive ? 'active' : 'inactive'}
                   onValueChange={(v) => set('factoryActive', v === 'active')}
                 >
-                  <SelectTrigger id="factory-reg">
+                  <SelectTrigger id="factory-reg" className="h-10 rounded-xl">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="active">Active Registration</SelectItem>
+                    <SelectItem value="inactive">Inactive / Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -270,25 +285,28 @@ export function AddNodeDrawer({ open, onOpenChange, onSuccess }: AddNodeDrawerPr
             {form.nodeType === 'IndianStandard' && (
               <>
                 <div className="space-y-1.5">
-                  <Label htmlFor="std-title">Title <span className="text-muted-foreground">(optional)</span></Label>
+                  <Label htmlFor="std-title" className="text-xs font-semibold">
+                    Standard Title <span className="text-muted-foreground font-normal">(optional)</span>
+                  </Label>
                   <Input
                     id="std-title"
                     placeholder="e.g. Plain and Reinforced Concrete"
                     value={form.standardTitle}
                     onChange={(e) => set('standardTitle', e.target.value)}
+                    className="h-10 rounded-xl"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="std-active">Standard Status</Label>
+                  <Label htmlFor="std-active" className="text-xs font-semibold">Standard Status</Label>
                   <Select
                     value={form.standardActive ? 'active' : 'inactive'}
                     onValueChange={(v) => set('standardActive', v === 'active')}
                   >
-                    <SelectTrigger id="std-active">
+                    <SelectTrigger id="std-active" className="h-10 rounded-xl">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="active">Active Standard</SelectItem>
                       <SelectItem value="inactive">Superseded / Withdrawn</SelectItem>
                     </SelectContent>
                   </Select>
@@ -299,92 +317,96 @@ export function AddNodeDrawer({ open, onOpenChange, onSuccess }: AddNodeDrawerPr
             {form.nodeType === 'TestLab' && (
               <>
                 <div className="space-y-1.5">
-                  <Label htmlFor="lab-name">Lab Name</Label>
+                  <Label htmlFor="lab-name" className="text-xs font-semibold">Test Lab Name</Label>
                   <Input
                     id="lab-name"
                     placeholder="e.g. National Test House Mumbai"
                     value={form.labName}
                     onChange={(e) => set('labName', e.target.value)}
+                    className="h-10 rounded-xl"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="lab-accred">Accreditation</Label>
+                  <Label htmlFor="lab-accred" className="text-xs font-semibold">NABL Accreditation</Label>
                   <Select
                     value={form.labAccreditation}
                     onValueChange={(v) => set('labAccreditation', v as 'VALID' | 'INVALID')}
                   >
-                    <SelectTrigger id="lab-accred">
+                    <SelectTrigger id="lab-accred" className="h-10 rounded-xl">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="VALID">VALID</SelectItem>
-                      <SelectItem value="INVALID">INVALID</SelectItem>
+                      <SelectItem value="VALID">VALID Accreditation</SelectItem>
+                      <SelectItem value="INVALID">INVALID / Expired Accreditation</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </>
             )}
 
-            {/* ── Edge connection ── */}
-            <Separator />
-            <div className="space-y-3">
+            {/* Edge Connection Section */}
+            <Separator className="my-2" />
+
+            <div className="space-y-3 rounded-xl border border-primary/20 bg-primary/5 p-3.5">
               <button
                 type="button"
                 onClick={() => set('connectEdge', !form.connectEdge)}
-                className="flex items-center gap-2 text-sm font-medium text-foreground/80 hover:text-foreground"
+                className="flex items-center gap-2 text-xs font-bold text-foreground"
               >
-                <span
+                <div
                   className={`flex h-4 w-4 items-center justify-center rounded border transition-colors ${
                     form.connectEdge
                       ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-border'
+                      : 'border-border bg-background'
                   }`}
                 >
                   {form.connectEdge && <span className="text-[10px] leading-none">✓</span>}
-                </span>
-                Connect to existing node
+                </div>
+                <Network className="h-3.5 w-3.5 text-primary" />
+                Connect to Existing Node Edge
               </button>
 
               {form.connectEdge && (
-                <>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="edge-to">Target Node ID</Label>
+                <div className="space-y-3 pt-2">
+                  <div className="space-y-1">
+                    <Label htmlFor="edge-to" className="text-[11px] font-semibold">Target Node ID</Label>
                     <Input
                       id="edge-to"
-                      placeholder="e.g. MFR001"
+                      placeholder="e.g. MFR001 or IS456:2000"
                       value={form.edgeTo}
                       onChange={(e) => set('edgeTo', e.target.value)}
+                      className="h-9 text-xs rounded-lg bg-background"
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="edge-type">Edge Type</Label>
+                  <div className="space-y-1">
+                    <Label htmlFor="edge-type" className="text-[11px] font-semibold">Edge Relationship Type</Label>
                     <Select
                       value={form.edgeType}
                       onValueChange={(v) => set('edgeType', v as EdgeType)}
                     >
-                      <SelectTrigger id="edge-type">
+                      <SelectTrigger id="edge-type" className="h-9 text-xs rounded-lg bg-background">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         {EDGE_OPTIONS.map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value}>
+                          <SelectItem key={opt.value} value={opt.value} className="text-xs">
                             {opt.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
-                </>
+                </div>
               )}
             </div>
 
-            {/* ── Result feedback ── */}
+            {/* Feedback */}
             {result && (
               <div
-                className={`flex items-start gap-2 rounded-lg border p-3 text-sm ${
+                className={`flex items-start gap-2 rounded-xl border p-3 text-xs font-medium ${
                   result.ok
-                    ? 'border-green-500/20 bg-green-50/50 text-green-700 dark:bg-green-950/20 dark:text-green-400'
-                    : 'border-destructive/20 bg-destructive/5 text-destructive'
+                    ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                    : 'border-destructive/30 bg-destructive/10 text-destructive'
                 }`}
               >
                 {result.ok ? (
@@ -398,12 +420,16 @@ export function AddNodeDrawer({ open, onOpenChange, onSuccess }: AddNodeDrawerPr
           </div>
         </ScrollableBody>
 
-        <DrawerFooter>
-          <Button onClick={() => void handleSubmit()} disabled={!canSubmit} className="w-full">
+        <DrawerFooter className="border-t border-border/60 p-4">
+          <Button
+            onClick={() => void handleSubmit()}
+            disabled={!canSubmit}
+            className="w-full h-11 rounded-xl bg-gradient-to-r from-primary to-indigo-600 text-primary-foreground shadow-md hover:opacity-95"
+          >
             {isSubmitting ? (
-              <><Loader2 className="h-4 w-4 animate-spin mr-2" />Adding…</>
+              <><Loader2 className="h-4 w-4 animate-spin mr-2" />Adding Node to Graph…</>
             ) : (
-              <><Save className="h-4 w-4 mr-2" />Add Node</>
+              <><Save className="h-4 w-4 mr-2" />Add Node to Supply Chain Graph</>
             )}
           </Button>
         </DrawerFooter>
@@ -412,7 +438,6 @@ export function AddNodeDrawer({ open, onOpenChange, onSuccess }: AddNodeDrawerPr
   )
 }
 
-// Simple scrollable wrapper since DrawerContent doesn't scroll by itself
 function ScrollableBody({ children }: { children: React.ReactNode }) {
-  return <div className="flex-1 overflow-y-auto">{children}</div>
+  return <div className="flex-1 overflow-y-auto max-h-[70vh]">{children}</div>
 }
