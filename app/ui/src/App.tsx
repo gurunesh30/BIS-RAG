@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { TabNavigation } from '@/components/layout/TabNavigation'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
+import { HeaderStatsBar } from '@/components/layout/HeaderStatsBar'
 import { RagAssistant } from '@/components/rag/RagAssistant'
 import { GraphVerifier } from '@/components/graph/GraphVerifier'
 import { Shield, Activity, Menu, X, Cpu } from 'lucide-react'
@@ -116,6 +117,8 @@ function App() {
 
         {/* Main Content Workspace (Right Column) */}
         <main className="flex-1 flex flex-col h-full overflow-hidden bg-background">
+          <HeaderStatsBar />
+          
           <TabsContent value="rag" className="flex-1 border-none p-0 h-full overflow-hidden focus-visible:outline-none">
             <RagAssistant />
           </TabsContent>
