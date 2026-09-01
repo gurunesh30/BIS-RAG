@@ -38,10 +38,10 @@ export function GraphSearchCard({ onSearch, isLoading }: GraphSearchCardProps) {
   }
 
   return (
-    <Card className="border-border/80 bg-card/80 backdrop-blur-xl shadow-md rounded-2xl overflow-hidden">
-      <CardHeader className="border-b border-border/40 bg-muted/20 pb-4">
+    <Card className="border-border bg-card rounded-xl overflow-hidden">
+      <CardHeader className="border-b border-border bg-muted/20 pb-4">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-secondary to-teal-500 text-white shadow-md shadow-secondary/20">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
             <ShieldCheck className="h-5 w-5" />
           </div>
           <div>
@@ -66,14 +66,14 @@ export function GraphSearchCard({ onSearch, isLoading }: GraphSearchCardProps) {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="pl-10 h-11 rounded-xl border-border/80 bg-background/80 text-sm focus-visible:ring-primary/40"
+              className="pl-10 h-11 rounded-lg border-border bg-background text-sm focus-visible:ring-primary/40"
               disabled={isLoading}
             />
           </div>
           <Button
             onClick={handleSubmit}
             disabled={!searchTerm.trim() || isLoading}
-            className="h-11 px-5 rounded-xl bg-gradient-to-r from-secondary via-teal-600 to-emerald-600 text-white shadow-md shadow-secondary/25 hover:opacity-95 shrink-0"
+            className="h-11 px-5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 shrink-0"
           >
             {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
@@ -98,7 +98,7 @@ export function GraphSearchCard({ onSearch, isLoading }: GraphSearchCardProps) {
                   key={item.id}
                   type="button"
                   onClick={() => handleSampleClick(item.id)}
-                  className="group flex items-center justify-between rounded-xl border border-border/70 bg-muted/20 px-3 py-2 text-xs font-mono text-foreground transition-all duration-200 hover:border-primary/50 hover:bg-primary/5"
+                  className="group flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2 text-xs font-mono text-foreground hover:bg-muted/50"
                 >
                   <div className="flex items-center gap-1.5 font-semibold">
                     <Icon className={`h-3.5 w-3.5 ${isValid ? 'text-emerald-500' : 'text-rose-500'}`} />

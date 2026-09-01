@@ -26,7 +26,7 @@ export function HeaderStatsBar() {
   }, [])
 
   return (
-    <div className="hidden lg:flex items-center justify-between border-b border-border/80 bg-sidebar/50 backdrop-blur-md px-6 py-2 text-xs shrink-0 z-10">
+    <div className="hidden lg:flex items-center justify-between border-b border-border bg-sidebar/50 px-6 py-2 text-xs shrink-0 z-10">
       {/* Left side: System status pills */}
       <div className="flex items-center gap-3">
         <span className="flex items-center gap-1.5 font-semibold text-foreground">
@@ -34,16 +34,16 @@ export function HeaderStatsBar() {
           BIS Verification Suite
         </span>
 
-        <div className="h-3 w-px bg-border/60" />
+        <div className="h-3 w-px bg-border" />
 
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="gap-1 bg-background/80 text-[11px] font-medium border-border/70">
+          <Badge variant="outline" className="gap-1 bg-background text-[11px] font-medium border-border">
             <Database className="h-3 w-3 text-indigo-500" />
             <span className="text-muted-foreground">Indexed Standards:</span>
             <span className="font-bold text-foreground font-mono">{codesCount}</span>
           </Badge>
 
-          <Badge variant="outline" className="gap-1 bg-background/80 text-[11px] font-medium border-border/70">
+          <Badge variant="outline" className="gap-1 bg-background text-[11px] font-medium border-border">
             <Network className="h-3 w-3 text-teal-500" />
             <span className="text-muted-foreground">Graph Nodes:</span>
             <span className="font-bold text-foreground font-mono">{nodesCount}</span>
@@ -53,7 +53,7 @@ export function HeaderStatsBar() {
 
       {/* Right side: Model & engine pills */}
       <div className="flex items-center gap-2.5">
-        <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[11px] font-medium gap-1">
+        <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[11px] font-medium gap-1">
           <CheckCircle2 className="h-3 w-3" />
           Engine API Operational
         </Badge>

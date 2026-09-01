@@ -149,10 +149,10 @@ export function AddNodeDrawer({ open, onOpenChange, onSuccess }: AddNodeDrawerPr
 
   return (
     <Drawer open={open} onOpenChange={handleOpenChange}>
-      <DrawerContent className="max-w-lg mx-auto bg-card/95 backdrop-blur-xl border-border">
-        <DrawerHeader className="border-b border-border/60 pb-3">
+      <DrawerContent className="max-w-lg mx-auto bg-card border-border">
+        <DrawerHeader className="border-b border-border pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
               <PlusCircle className="h-5 w-5" />
             </div>
             <div>
@@ -176,7 +176,7 @@ export function AddNodeDrawer({ open, onOpenChange, onSuccess }: AddNodeDrawerPr
                 value={form.nodeType}
                 onValueChange={(v) => set('nodeType', v as NodeType)}
               >
-                <SelectTrigger id="node-type" className="h-10 rounded-xl">
+                <SelectTrigger id="node-type" className="h-10 rounded-lg">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -207,7 +207,7 @@ export function AddNodeDrawer({ open, onOpenChange, onSuccess }: AddNodeDrawerPr
                 }
                 value={form.nodeId}
                 onChange={(e) => set('nodeId', e.target.value)}
-                className="h-10 rounded-xl"
+                className="h-10 rounded-lg"
               />
             </div>
 
@@ -220,7 +220,7 @@ export function AddNodeDrawer({ open, onOpenChange, onSuccess }: AddNodeDrawerPr
                     value={form.licenseStatus}
                     onValueChange={(v) => set('licenseStatus', v as typeof form.licenseStatus)}
                   >
-                    <SelectTrigger id="license-status" className="h-10 rounded-xl">
+                    <SelectTrigger id="license-status" className="h-10 rounded-lg">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -239,7 +239,7 @@ export function AddNodeDrawer({ open, onOpenChange, onSuccess }: AddNodeDrawerPr
                     type="date"
                     value={form.expiryDate}
                     onChange={(e) => set('expiryDate', e.target.value)}
-                    className="h-10 rounded-xl"
+                    className="h-10 rounded-lg"
                   />
                 </div>
               </>
@@ -259,7 +259,7 @@ export function AddNodeDrawer({ open, onOpenChange, onSuccess }: AddNodeDrawerPr
                   }
                   value={form.name}
                   onChange={(e) => set('name', e.target.value)}
-                  className="h-10 rounded-xl"
+                  className="h-10 rounded-lg"
                 />
               </div>
             )}
@@ -271,7 +271,7 @@ export function AddNodeDrawer({ open, onOpenChange, onSuccess }: AddNodeDrawerPr
                   value={form.factoryActive ? 'active' : 'inactive'}
                   onValueChange={(v) => set('factoryActive', v === 'active')}
                 >
-                  <SelectTrigger id="factory-reg" className="h-10 rounded-xl">
+                  <SelectTrigger id="factory-reg" className="h-10 rounded-lg">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -293,7 +293,7 @@ export function AddNodeDrawer({ open, onOpenChange, onSuccess }: AddNodeDrawerPr
                     placeholder="e.g. Plain and Reinforced Concrete"
                     value={form.standardTitle}
                     onChange={(e) => set('standardTitle', e.target.value)}
-                    className="h-10 rounded-xl"
+                    className="h-10 rounded-lg"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -302,7 +302,7 @@ export function AddNodeDrawer({ open, onOpenChange, onSuccess }: AddNodeDrawerPr
                     value={form.standardActive ? 'active' : 'inactive'}
                     onValueChange={(v) => set('standardActive', v === 'active')}
                   >
-                    <SelectTrigger id="std-active" className="h-10 rounded-xl">
+                    <SelectTrigger id="std-active" className="h-10 rounded-lg">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -323,7 +323,7 @@ export function AddNodeDrawer({ open, onOpenChange, onSuccess }: AddNodeDrawerPr
                     placeholder="e.g. National Test House Mumbai"
                     value={form.labName}
                     onChange={(e) => set('labName', e.target.value)}
-                    className="h-10 rounded-xl"
+                    className="h-10 rounded-lg"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -332,7 +332,7 @@ export function AddNodeDrawer({ open, onOpenChange, onSuccess }: AddNodeDrawerPr
                     value={form.labAccreditation}
                     onValueChange={(v) => set('labAccreditation', v as 'VALID' | 'INVALID')}
                   >
-                    <SelectTrigger id="lab-accred" className="h-10 rounded-xl">
+                    <SelectTrigger id="lab-accred" className="h-10 rounded-lg">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -347,7 +347,7 @@ export function AddNodeDrawer({ open, onOpenChange, onSuccess }: AddNodeDrawerPr
             {/* Edge Connection Section */}
             <Separator className="my-2" />
 
-            <div className="space-y-3 rounded-xl border border-primary/20 bg-primary/5 p-3.5">
+            <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-3.5">
               <button
                 type="button"
                 onClick={() => set('connectEdge', !form.connectEdge)}
@@ -403,7 +403,7 @@ export function AddNodeDrawer({ open, onOpenChange, onSuccess }: AddNodeDrawerPr
             {/* Feedback */}
             {result && (
               <div
-                className={`flex items-start gap-2 rounded-xl border p-3 text-xs font-medium ${
+                className={`flex items-start gap-2 rounded-lg border p-3 text-xs font-medium ${
                   result.ok
                     ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
                     : 'border-destructive/30 bg-destructive/10 text-destructive'
@@ -420,11 +420,11 @@ export function AddNodeDrawer({ open, onOpenChange, onSuccess }: AddNodeDrawerPr
           </div>
         </ScrollableBody>
 
-        <DrawerFooter className="border-t border-border/60 p-4">
+        <DrawerFooter className="border-t border-border p-4">
           <Button
             onClick={() => void handleSubmit()}
             disabled={!canSubmit}
-            className="w-full h-11 rounded-xl bg-gradient-to-r from-primary to-indigo-600 text-primary-foreground shadow-md hover:opacity-95"
+            className="w-full h-11 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
           >
             {isSubmitting ? (
               <><Loader2 className="h-4 w-4 animate-spin mr-2" />Adding Node to Graph…</>

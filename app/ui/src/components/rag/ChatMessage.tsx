@@ -75,16 +75,16 @@ export function ChatMessage({
 
   return (
     <div
-      className={`mx-auto flex w-full max-w-4xl gap-3 animate-fade-in ${
+      className={`mx-auto flex w-full max-w-4xl gap-3 ${
         role === 'user' ? 'flex-row-reverse' : 'flex-row'
       }`}
     >
       {/* Avatar */}
       <div
-        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl font-bold shadow-sm ${
+        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg font-bold ${
           role === 'user'
-            ? 'bg-gradient-to-tr from-primary to-accent text-primary-foreground shadow-primary/20'
-            : 'bg-gradient-to-tr from-secondary via-teal-500 to-emerald-500 text-white shadow-secondary/20'
+            ? 'bg-primary text-primary-foreground'
+            : 'bg-muted text-muted-foreground'
         }`}
       >
         {role === 'user' ? (
@@ -97,10 +97,10 @@ export function ChatMessage({
       {/* Message Content Container */}
       <div className={`flex flex-col max-w-[85%] ${role === 'user' ? 'items-end' : 'items-start'}`}>
         <div
-          className={`p-4 transition-all ${
+          className={`p-4 ${
             role === 'user'
-              ? 'rounded-2xl rounded-tr-xs bg-gradient-to-r from-primary via-indigo-600 to-indigo-700 text-white shadow-md'
-              : 'rounded-2xl rounded-tl-xs border border-border/80 bg-card/85 backdrop-blur-md text-card-foreground shadow-sm'
+              ? 'rounded-2xl rounded-tr-xs bg-primary text-primary-foreground'
+              : 'rounded-2xl rounded-tl-xs bg-card border border-border text-card-foreground'
           }`}
         >
           <div className="prose prose-sm max-w-none leading-relaxed text-inherit">
@@ -124,7 +124,7 @@ export function ChatMessage({
 
           {/* Citations Footer */}
           {citations && citations.length > 0 && (
-            <div className="mt-3.5 pt-3 border-t border-border/40 flex flex-col gap-1.5">
+            <div className="mt-3.5 pt-3 border-t border-border flex flex-col gap-1.5">
               <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                 Verified Clause Citations ({citations.length}):
               </span>

@@ -32,7 +32,7 @@ export function VerificationResultCard({
 }: VerificationResultCardProps) {
   if (isLoading) {
     return (
-      <Card className="border-border/80 bg-card/80 backdrop-blur-xl shadow-md rounded-2xl p-6">
+      <Card className="border-border bg-card rounded-xl p-6">
         <div className="flex flex-col items-center justify-center py-10 space-y-3">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <span className="text-sm font-semibold text-foreground">Executing BFS Supply Chain Graph Traversal…</span>
@@ -44,9 +44,9 @@ export function VerificationResultCard({
 
   if (!result) {
     return (
-      <Card className="border-border/80 bg-card/60 backdrop-blur-xl shadow-xs rounded-2xl p-6">
+      <Card className="border-border bg-card rounded-xl p-6">
         <div className="flex flex-col items-center justify-center py-8 text-center space-y-2">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted text-muted-foreground/60">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
             <GitCommit className="h-6 w-6" />
           </div>
           <h3 className="text-sm font-bold text-foreground">No Verification Query Active</h3>
@@ -62,21 +62,21 @@ export function VerificationResultCard({
 
   return (
     <Card
-      className={`border-2 shadow-md rounded-2xl overflow-hidden transition-all animate-fade-in ${
+      className={`border rounded-xl overflow-hidden ${
         isVerified
-          ? 'border-emerald-500/40 bg-gradient-to-b from-emerald-500/10 via-card to-card'
-          : 'border-rose-500/40 bg-gradient-to-b from-rose-500/10 via-card to-card'
+          ? 'border-emerald-500/40 bg-card'
+          : 'border-rose-500/40 bg-card'
       }`}
     >
-      <CardHeader className="border-b border-border/40 pb-4">
+      <CardHeader className="border-b border-border pb-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <CardTitle className="flex items-center gap-2.5 text-lg font-bold">
             {isVerified ? (
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-md shadow-emerald-500/30">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500 text-white">
                 <ShieldCheck className="h-5 w-5" />
               </div>
             ) : (
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-500 text-white shadow-md shadow-rose-500/30">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-500 text-white">
                 <ShieldAlert className="h-5 w-5" />
               </div>
             )}
@@ -85,7 +85,7 @@ export function VerificationResultCard({
             </span>
           </CardTitle>
           <Badge
-            className={`font-mono text-xs px-3 py-1 rounded-lg ${
+            className={`font-mono text-xs px-3 py-1 rounded-md ${
               isVerified
                 ? 'bg-emerald-500 text-white'
                 : 'bg-rose-500 text-white'
@@ -99,7 +99,7 @@ export function VerificationResultCard({
       <CardContent className="p-6 space-y-5">
         {isVerified ? (
           <div className="space-y-4">
-            <div className="flex items-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-3 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+            <div className="flex items-center gap-2 rounded-lg bg-emerald-500/10 p-3 text-xs font-medium text-emerald-700 dark:text-emerald-300">
               <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
               <span>
                 Chain verified successfully through <strong>{result.traversed_path.nodes.length} BFS graph hops</strong> without broken or expired relationships.
@@ -116,7 +116,7 @@ export function VerificationResultCard({
                   return (
                     <div
                       key={i}
-                      className="flex items-center justify-between rounded-xl border border-border/80 bg-background/70 p-3 shadow-2xs hover:border-primary/40 transition-colors"
+                      className="flex items-center justify-between rounded-lg border border-border bg-background p-3"
                     >
                       <div className="flex items-center gap-2.5">
                         <Badge variant="outline" className="text-[10px] font-mono px-2 py-0.5">
@@ -137,7 +137,7 @@ export function VerificationResultCard({
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 space-y-1.5">
+            <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-4 space-y-1.5">
               <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-bold text-sm">
                 <AlertTriangle className="h-4 w-4 shrink-0" />
                 <span>Verification Failure Detected</span>
@@ -154,7 +154,7 @@ export function VerificationResultCard({
                 </span>
                 <div className="flex flex-col gap-2">
                   {result.traversed_path.nodes.map((node, i) => (
-                    <div key={i} className="flex items-center justify-between rounded-xl border border-border/80 bg-background/70 p-3">
+                    <div key={i} className="flex items-center justify-between rounded-lg border border-border bg-background p-3">
                       <div className="flex items-center gap-2">
                         <Badge variant="outline" className="text-[10px] font-mono">
                           Hop #{i + 1}
@@ -170,12 +170,12 @@ export function VerificationResultCard({
                   ))}
 
                   {result.traversed_path.edges && result.traversed_path.edges.length > 0 && (
-                    <div className="mt-2 space-y-1.5 pt-2 border-t border-border/40">
+                    <div className="mt-2 space-y-1.5 pt-2 border-t border-border">
                       <span className="text-[11px] font-semibold text-muted-foreground">Broken Edges Details:</span>
                       {result.traversed_path.edges.map((edge, i) => (
                         <div
                           key={i}
-                          className="flex flex-wrap items-center gap-2 rounded-lg bg-rose-500/5 border border-rose-500/20 p-2.5 text-xs"
+                          className="flex flex-wrap items-center gap-2 rounded-md bg-rose-500/5 border border-border p-2.5 text-xs"
                         >
                           <span className="font-semibold text-foreground">{getEdgeLabel(edge as TraversalEdge)}</span>
                           <ArrowRight className="h-3 w-3 text-muted-foreground" />

@@ -22,8 +22,8 @@ export function SourceDrawer({
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="h-[85dvh] max-w-3xl border-border bg-card/95 backdrop-blur-xl">
-        <DrawerHeader className="border-b border-border/60 pb-3">
+      <DrawerContent className="h-[85dvh] max-w-3xl border-border bg-card">
+        <DrawerHeader className="border-b border-border pb-3">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
               <Layers className="h-4 w-4" />
@@ -43,7 +43,7 @@ export function SourceDrawer({
           <ScrollArea className="h-full">
             <div className="p-6 space-y-4">
               {relevantCitations.length > 0 && (
-                <div className="rounded-xl border border-primary/20 bg-primary/5 p-3.5 space-y-2">
+                <div className="rounded-lg border border-border bg-muted/30 p-3.5 space-y-2">
                   <span className="flex items-center gap-1.5 text-xs font-semibold text-primary">
                     <BookOpen className="h-3.5 w-3.5" />
                     Cited Standards &amp; Clauses ({relevantCitations.length})
@@ -53,7 +53,7 @@ export function SourceDrawer({
                       <Badge
                         key={i}
                         variant="secondary"
-                        className="rounded-lg border border-primary/20 bg-background/80 px-2.5 py-1 text-xs font-mono font-medium text-foreground"
+                        className="rounded-md border border-border bg-background px-2.5 py-1 text-xs font-mono font-medium text-foreground"
                       >
                         {cit.is_code} | Clause {cit.clause} | Page {cit.page}
                       </Badge>
@@ -69,11 +69,11 @@ export function SourceDrawer({
                 return (
                   <div
                     key={chunk.id || idx}
-                    className="rounded-xl border border-border/80 bg-muted/20 p-4 transition-all hover:border-primary/40 hover:bg-muted/40 shadow-2xs"
+                    className="rounded-lg border border-border bg-card p-4 hover:bg-muted/30"
                   >
-                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-border/40 pb-2">
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2">
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-primary/20 text-xs font-mono">
+                        <Badge className="bg-muted text-foreground border-border text-xs font-mono">
                           {chunk.metadata.is_code}
                         </Badge>
                         <Badge variant="outline" className="text-xs font-mono">
@@ -86,8 +86,8 @@ export function SourceDrawer({
                       <Badge
                         className={`text-xs font-medium ${
                           similarityPercent >= 80
-                            ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
-                            : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+                            ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                            : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
                         }`}
                       >
                         {similarityPercent}% Match

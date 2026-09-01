@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import {
   Loader2, Send, FileText, ExternalLink,
-  Upload, X, BookOpen, ChevronDown, ChevronUp, Sparkles, Filter, CheckCircle2, AlertCircle, Trash2
+  Upload, X, BookOpen, ChevronDown, ChevronUp, Filter, CheckCircle2, AlertCircle, Trash2
 } from 'lucide-react'
 import { ChatMessage } from '@/components/rag/ChatMessage'
 import { SourceDrawer } from '@/components/rag/SourceDrawer'
@@ -175,14 +175,14 @@ export function RagAssistant() {
     <div className="flex flex-col h-full overflow-hidden bg-background">
 
       {/* ── Ingest panel ── */}
-      <div className="border-b border-border bg-card/60 backdrop-blur-md shrink-0">
+      <div className="border-b border-border bg-card shrink-0">
         <button
           type="button"
           onClick={() => setIngestOpen((v) => !v)}
-          className="flex w-full items-center justify-between px-6 py-3 text-sm font-semibold text-foreground hover:bg-muted/30 transition-colors"
+          className="flex w-full items-center justify-between px-6 py-3 text-sm font-semibold text-foreground hover:bg-muted/30"
         >
           <div className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-muted text-muted-foreground">
               <BookOpen className="h-4 w-4" />
             </div>
             <span>Manage IS Codebooks</span>
@@ -198,12 +198,12 @@ export function RagAssistant() {
         </button>
 
         {ingestOpen && (
-          <div className="px-6 pb-4 pt-1 space-y-4 animate-fade-in border-t border-border/40 bg-muted/20">
+          <div className="px-6 pb-4 pt-1 space-y-4 border-t border-border bg-muted/10">
             {/* Upload row */}
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <label
                 htmlFor="pdf-upload"
-                className="flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-primary/40 bg-card px-4 py-2 text-sm text-foreground transition-all hover:border-primary hover:bg-primary/5 hover:shadow-xs"
+                className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-border bg-background px-4 py-2 text-sm text-foreground hover:border-primary"
               >
                 <Upload className="h-4 w-4 text-primary" />
                 <span className="font-medium">
@@ -222,7 +222,7 @@ export function RagAssistant() {
                 size="sm"
                 disabled={!ingestFile || isIngesting}
                 onClick={handleIngest}
-                className="rounded-xl bg-gradient-to-r from-primary to-indigo-600 text-primary-foreground shadow-sm hover:opacity-95"
+                className="rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
               >
                 {isIngesting ? (
                   <><Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />Indexing PDF…</>
@@ -237,7 +237,7 @@ export function RagAssistant() {
                     setIngestFile(null)
                     if (fileInputRef.current) fileInputRef.current.value = ''
                   }}
-                  className="rounded-lg p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                  className="rounded-lg p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -246,13 +246,13 @@ export function RagAssistant() {
 
             {/* Feedback */}
             {ingestResult && (
-              <div className="flex items-center gap-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+              <div className="flex items-center gap-2 rounded-lg bg-emerald-500/10 px-3 py-2 text-xs font-medium text-emerald-600 dark:text-emerald-400">
                 <CheckCircle2 className="h-4 w-4 shrink-0" />
                 Successfully indexed <strong>{ingestResult.filename}</strong> &mdash; {ingestResult.chunks} chunks vector embeddings added.
               </div>
             )}
             {ingestError && (
-              <div className="flex items-center gap-2 rounded-lg bg-destructive/10 border border-destructive/20 px-3 py-2 text-xs font-medium text-destructive">
+              <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">
                 <AlertCircle className="h-4 w-4 shrink-0" />
                 {ingestError}
               </div>
@@ -269,14 +269,14 @@ export function RagAssistant() {
                   {indexedCodes.map((code) => (
                     <span
                       key={code}
-                      className="group flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1 text-xs font-mono font-semibold text-foreground shadow-2xs hover:border-primary/40"
+                      className="group flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1 text-xs font-mono font-semibold text-foreground"
                     >
                       <BookOpen className="h-3.5 w-3.5 text-primary" />
                       {code}
                       <button
                         type="button"
                         onClick={() => void handleDeleteCode(code)}
-                        className="ml-1 rounded p-0.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                        className="ml-1 rounded p-0.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                         title={`Purge ${code} from collection`}
                       >
                         <Trash2 className="h-3 w-3" />
@@ -296,14 +296,12 @@ export function RagAssistant() {
           <div className="space-y-6 p-6 pb-24">
             {messages.length === 0 ? (
               <div className="mx-auto flex h-full min-h-[440px] max-w-2xl flex-col items-center justify-center text-center p-6 space-y-6">
-                <div className="relative">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-tr from-primary via-indigo-600 to-accent text-primary-foreground shadow-xl shadow-primary/25 animate-pulse">
-                    <Sparkles className="h-8 w-8" />
-                  </div>
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                  <BookOpen className="h-6 w-6" />
                 </div>
 
                 <div className="space-y-2">
-                  <h2 className="font-heading text-2xl font-bold tracking-tight text-foreground gradient-text-primary">
+                  <h2 className="font-heading text-2xl font-bold tracking-tight text-foreground">
                     BIS Standards Citation Assistant
                   </h2>
                   <p className="max-w-md text-sm text-muted-foreground leading-relaxed">
@@ -312,12 +310,12 @@ export function RagAssistant() {
                 </div>
 
                 {indexedCodes.length === 0 ? (
-                  <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-xs text-amber-600 dark:text-amber-400 max-w-md flex items-center gap-2">
+                  <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-600 dark:text-amber-400 max-w-md flex items-center gap-2">
                     <AlertCircle className="h-4 w-4 shrink-0" />
                     <span>No IS codebooks indexed yet. Click "Manage IS Codebooks" above to upload PDF documents.</span>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-full">
+                  <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 font-medium bg-emerald-500/10 px-3 py-1.5 rounded-full">
                     <CheckCircle2 className="h-3.5 w-3.5" />
                     Ready &mdash; {indexedCodes.length} IS standard codebooks indexed
                   </div>
@@ -333,9 +331,9 @@ export function RagAssistant() {
                         key={i}
                         type="button"
                         onClick={() => handlePromptClick(prompt)}
-                        className="group flex items-start gap-2.5 rounded-xl border border-border/80 bg-card p-3 text-xs text-foreground/90 transition-all duration-200 hover:border-primary/50 hover:bg-primary/5 hover:shadow-xs"
+                        className="group flex items-start gap-2.5 rounded-lg border border-border bg-card p-3 text-xs text-foreground/90 hover:bg-muted/50"
                       >
-                        <FileText className="h-4 w-4 text-primary shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
+                        <FileText className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                         <span className="font-medium leading-snug">{prompt}</span>
                       </button>
                     ))}
@@ -356,8 +354,8 @@ export function RagAssistant() {
 
             {isLoading && (
               <div className="mx-auto max-w-4xl px-4 py-3">
-                <div className="flex items-center gap-3 rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary animate-pulse shadow-xs">
-                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                   <span className="font-medium">Searching indexed vector chunks &amp; generating cited response</span>
                   {selectedCode !== 'all' && (
                     <Badge variant="secondary" className="text-xs font-mono ml-auto">
@@ -372,7 +370,7 @@ export function RagAssistant() {
       </div>
 
       {/* ── Input bar ── */}
-      <div className="border-t border-border bg-card/80 backdrop-blur-xl p-4 shrink-0 shadow-lg">
+      <div className="border-t border-border bg-card p-4 shrink-0">
         <div className="mx-auto max-w-4xl space-y-2.5">
           {/* Controls bar */}
           <div className="flex items-center justify-between gap-3">
@@ -380,7 +378,7 @@ export function RagAssistant() {
               <Filter className="h-3.5 w-3.5 text-muted-foreground" />
               <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Filter Standard:</span>
               <Select value={selectedCode} onValueChange={(v) => setSelectedCode(v as string)}>
-                <SelectTrigger className="h-8 w-[170px] text-xs font-mono rounded-xl bg-background border-border/80">
+                <SelectTrigger className="h-8 w-[170px] text-xs font-mono rounded-xl bg-background border-border">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -400,7 +398,7 @@ export function RagAssistant() {
                 size="sm"
                 onClick={() => setDrawerOpen(true)}
                 disabled={latestChunks.length === 0}
-                className="h-8 text-xs gap-1.5 rounded-xl border-primary/30 text-primary hover:bg-primary/10"
+                className="h-8 text-xs gap-1.5 rounded-lg border-border text-foreground hover:bg-muted"
               >
                 <ExternalLink className="h-3.5 w-3.5" />
                 Source Chunks ({latestChunks.length})
@@ -421,7 +419,7 @@ export function RagAssistant() {
                     ? `Ask technical question on ${selectedCode}… (Press Enter to send)`
                     : 'Ask technical question on IS standards… (Press Enter to send)'
                 }
-                className="min-h-[50px] max-h-36 resize-none rounded-xl border-border/80 bg-background/90 px-4 py-3 text-sm focus-visible:ring-primary/40 shadow-inner"
+                className="min-h-[50px] max-h-36 resize-none rounded-lg border-border bg-background px-4 py-3 text-sm focus-visible:ring-primary/40"
                 rows={1}
                 disabled={isLoading}
               />
@@ -429,7 +427,7 @@ export function RagAssistant() {
             <Button
               onClick={() => void handleSubmit()}
               disabled={!input.trim() || isLoading}
-              className="h-[50px] px-5 rounded-xl bg-gradient-to-r from-primary via-indigo-600 to-accent text-primary-foreground shadow-md shadow-primary/25 hover:opacity-95 shrink-0 transition-transform active:scale-95"
+              className="h-[50px] px-5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 shrink-0"
             >
               {isLoading ? (
                 <Loader2 className="h-5 w-5 animate-spin" />

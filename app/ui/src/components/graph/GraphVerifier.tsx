@@ -1,7 +1,7 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Plus, RefreshCw, Network, Layers, Sparkles } from 'lucide-react'
+import { Plus, RefreshCw, Network, Layers, Loader2 } from 'lucide-react'
 import { GraphSearchCard } from '@/components/graph/GraphSearchCard'
 import { VerificationResultCard } from '@/components/graph/VerificationResultCard'
 import { AddNodeDrawer } from '@/components/graph/AddNodeDrawer'
@@ -61,9 +61,9 @@ export function GraphVerifier() {
     <div className="flex flex-col h-full overflow-hidden bg-background">
 
       {/* Top Controls / Quick Action Bar */}
-      <div className="border-b border-border bg-card/60 backdrop-blur-md px-6 py-3 shrink-0 flex flex-wrap items-center justify-between gap-4">
+      <div className="border-b border-border bg-card px-6 py-3 shrink-0 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-secondary/10 text-secondary">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
             <Network className="h-4 w-4" />
           </div>
           <div>
@@ -78,7 +78,7 @@ export function GraphVerifier() {
             size="sm"
             onClick={() => void handleExport()}
             disabled={isExporting}
-            className="h-9 text-xs rounded-xl border-border hover:bg-muted"
+            className="h-9 text-xs rounded-lg border-border hover:bg-muted"
           >
             <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isExporting ? 'animate-spin' : ''}`} />
             Refresh Graph
@@ -87,7 +87,7 @@ export function GraphVerifier() {
           <Button
             size="sm"
             onClick={() => setDrawerOpen(true)}
-            className="h-9 text-xs rounded-xl bg-gradient-to-r from-primary to-indigo-600 text-primary-foreground shadow-sm hover:opacity-95"
+            className="h-9 text-xs rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
           >
             <Plus className="h-3.5 w-3.5 mr-1.5" />
             Add Graph Node
@@ -115,8 +115,8 @@ export function GraphVerifier() {
 
             {/* Right Column: Network Graph Canvas (7 cols) */}
             <div className="lg:col-span-7">
-              <Card className="border-border/80 bg-card/80 backdrop-blur-xl shadow-md rounded-2xl p-5 space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/40 pb-3">
+              <Card className="border-border bg-card rounded-xl p-5 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
                   <div className="flex items-center gap-2">
                     <Layers className="h-4 w-4 text-primary" />
                     <h3 className="text-sm font-bold text-foreground">Interactive Force Graph</h3>
@@ -138,11 +138,11 @@ export function GraphVerifier() {
                   </div>
                 </div>
 
-                <div className="relative rounded-xl border border-border/60 bg-background/50 overflow-hidden min-h-[480px]">
+                <div className="relative rounded-lg border border-border bg-background overflow-hidden min-h-[480px]">
                   <Suspense
                     fallback={
                       <div className="flex h-[480px] items-center justify-center text-muted-foreground text-sm space-y-2">
-                        <Sparkles className="h-6 w-6 animate-pulse text-primary" />
+                        <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
                         <span>Rendering force layout network graph…</span>
                       </div>
                     }

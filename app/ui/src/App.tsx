@@ -16,9 +16,9 @@ function App() {
       <Tabs defaultValue="rag" orientation="vertical" className="flex flex-1 flex-col md:flex-row w-full h-svh overflow-hidden">
         
         {/* Mobile Header */}
-        <header className="md:hidden flex items-center justify-between border-b border-border bg-sidebar/80 backdrop-blur-md px-4 py-3 shrink-0 z-30">
+        <header className="md:hidden flex items-center justify-between border-b border-border bg-sidebar px-4 py-3 shrink-0 z-30">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-primary to-accent text-primary-foreground shadow-md shadow-primary/20">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
               <Shield className="h-5 w-5" />
             </div>
             <div>
@@ -45,23 +45,19 @@ function App() {
 
         {/* Vertical Left Navigation Sidebar */}
         <aside
-          className={`fixed inset-y-0 left-0 z-40 w-72 flex-col justify-between border-r border-sidebar-border bg-sidebar/95 backdrop-blur-xl transition-transform duration-300 ease-in-out md:static md:translate-x-0 flex shrink-0 ${
+          className={`fixed inset-y-0 left-0 z-40 w-72 flex-col justify-between border-r border-sidebar-border bg-sidebar md:static md:translate-x-0 flex shrink-0 ${
             mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         >
           <div className="flex flex-col gap-6 p-5">
             {/* Branding Header */}
-            <div className="flex items-center gap-3 pb-2 border-b border-sidebar-border/60">
-              <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-primary via-primary/80 to-accent text-primary-foreground shadow-md shadow-primary/25">
+            <div className="flex items-center gap-3 pb-2 border-b border-border">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                 <Shield className="h-5 w-5" />
-                <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-secondary"></span>
-                </span>
               </div>
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5">
-                  <h1 className="font-heading text-base font-bold tracking-tight text-sidebar-foreground gradient-text-primary">
+                  <h1 className="font-heading text-base font-bold tracking-tight text-sidebar-foreground">
                     BIS RAG Suite
                   </h1>
                 </div>
@@ -80,14 +76,14 @@ function App() {
             </div>
 
             {/* System Info Box */}
-            <div className="rounded-xl border border-sidebar-border/80 bg-sidebar-accent/30 p-3.5 space-y-2.5">
+            <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="flex items-center gap-1.5 text-xs font-semibold text-sidebar-foreground">
-                  <Cpu className="h-3.5 w-3.5 text-primary" />
+                <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                  <Cpu className="h-3.5 w-3.5 text-muted-foreground" />
                   Engine Status
                 </span>
-                <span className="flex items-center gap-1 text-[10px] font-medium text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                  <Activity className="h-3 w-3 animate-pulse" /> Active
+                <span className="flex items-center gap-1 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                  <Activity className="h-3 w-3" /> Active
                 </span>
               </div>
               <p className="text-[11px] text-muted-foreground leading-relaxed">
@@ -97,7 +93,7 @@ function App() {
           </div>
 
           {/* Sidebar Footer */}
-          <div className="p-4 border-t border-sidebar-border/60 flex items-center justify-between bg-sidebar-accent/20">
+          <div className="p-4 border-t border-border flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ThemeToggle showLabel />
             </div>
@@ -110,7 +106,7 @@ function App() {
         {/* Overlay backdrop for mobile menu */}
         {mobileMenuOpen && (
           <div
-            className="fixed inset-0 z-30 bg-background/80 backdrop-blur-xs md:hidden"
+            className="fixed inset-0 z-30 bg-background/80 md:hidden"
             onClick={() => setMobileMenuOpen(false)}
           />
         )}
