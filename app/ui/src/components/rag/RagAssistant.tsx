@@ -45,7 +45,7 @@ export function RagAssistant() {
   const [ingestOpen, setIngestOpen] = useState(false)
   const [ingestFile, setIngestFile] = useState<File | null>(null)
   const [isIngesting, setIsIngesting] = useState(false)
-  const [ingestResult, setIngestResult] = useState<{ filename: string; chunks: number } | null>(null)
+  const [ingestResult, setIngestResult] = useState<{ filename: string; chunks: number; isDelete?: boolean } | null>(null)
   const [ingestError, setIngestError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -159,13 +159,21 @@ export function RagAssistant() {
     }
   }
 
+  const [deletingCode, setDeletingCode] = useState<string | null>(null)
+
   const handleDeleteCode = async (code: string) => {
+    setDeletingCode(code)
+    setIngestResult(null)
+    setIngestError(null)
     try {
-      await deleteIsCode(code)
+      const deletedChunks = await deleteIsCode(code)
       await fetchCodes()
       if (selectedCode === code) setSelectedCode('all')
-    } catch {
-      // ignore
+      setIngestResult({ filename: code, chunks: deletedChunks, isDelete: true })
+    } catch (err) {
+      setIngestError(err instanceof Error ? err.message : `Failed to remove ${code}`)
+    } finally {
+      setDeletingCode(null)
     }
   }
 
@@ -248,7 +256,11 @@ export function RagAssistant() {
             {ingestResult && (
               <div className="flex items-center gap-2 rounded-lg bg-emerald-500/10 px-3 py-2 text-xs font-medium text-emerald-600 dark:text-emerald-400">
                 <CheckCircle2 className="h-4 w-4 shrink-0" />
-                Successfully indexed <strong>{ingestResult.filename}</strong> &mdash; {ingestResult.chunks} chunks vector embeddings added.
+                {ingestResult.isDelete ? (
+                  <>Successfully purged <strong>{ingestResult.filename}</strong> &mdash; {ingestResult.chunks} chunks removed from knowledge base.</>
+                ) : (
+                  <>Successfully indexed <strong>{ingestResult.filename}</strong> &mdash; {ingestResult.chunks} chunks vector embeddings added.</>
+                )}
               </div>
             )}
             {ingestError && (
@@ -275,11 +287,16 @@ export function RagAssistant() {
                       {code}
                       <button
                         type="button"
+                        disabled={deletingCode === code}
                         onClick={() => void handleDeleteCode(code)}
-                        className="ml-1 rounded p-0.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                        className="ml-1 rounded p-0.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
                         title={`Purge ${code} from collection`}
                       >
-                        <Trash2 className="h-3 w-3" />
+                        {deletingCode === code ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3 w-3" />
+                        )}
                       </button>
                     </span>
                   ))}

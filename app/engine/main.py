@@ -16,6 +16,9 @@ from .graph.engine import KnowledgeGraphEngine
 from .graph.schema import NodeType, EdgeType
 
 
+from dotenv import load_dotenv
+load_dotenv()
+
 app = FastAPI(
     title="BIS RAG & Graph Verification Engine",
     description="Backend API for citation-based RAG and NetworkX knowledge graph license verification.",
@@ -36,7 +39,8 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 ingestion_engine = PDFIngestionEngine()
 vector_store = VectorStore()
 synthesizer = CitationSynthesizer(
-    openrouter_api_key=os.getenv("OPENROUTER_API_KEY")
+    openrouter_api_key=os.getenv("OPENROUTER_API_KEY"),
+    openrouter_model=os.getenv("OPENROUTER_MODEL", "openai/gpt-4o-mini")
 )
 graph_engine = KnowledgeGraphEngine(backup_path="./graph_backup.json")
 

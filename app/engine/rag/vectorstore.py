@@ -72,7 +72,8 @@ class VectorStore:
     def query(self, query_text: str, n_results: int = 5, is_code_filter: Optional[str] = None) -> Dict[str, Any]:
         where_filter = None
         if is_code_filter:
-            where_filter = {"is_code": {"$eq": is_code_filter.upper()}}
+            target_codes = list({is_code_filter, is_code_filter.upper(), is_code_filter.lower()})
+            where_filter = {"is_code": {"$in": target_codes}}
 
         results = self._collection.query(
             query_texts=[query_text],
@@ -106,8 +107,22 @@ class VectorStore:
         return sorted(list(codes))
 
     def delete_by_is_code(self, is_code: str) -> int:
-        results = self._collection.get(where={"is_code": {"$eq": is_code.upper()}})
-        if results and results.get("ids"):
-            self._collection.delete(ids=results["ids"])
-            return len(results["ids"])
+        target_codes = list({is_code, is_code.upper(), is_code.lower()})
+        results = self._collection.get(where={"is_code": {"$in": target_codes}})
+        ids = results.get("ids", []) if results else []
+
+        if not ids:
+            # Fallback scan: case-insensitive comparison over all metadatas
+            all_data = self._collection.get(include=["metadatas"])
+            all_ids = all_data.get("ids", [])
+            all_meta = all_data.get("metadatas", [])
+            target_lower = is_code.strip().lower()
+            ids = [
+                doc_id for doc_id, meta in zip(all_ids, all_meta)
+                if meta and meta.get("is_code", "").strip().lower() == target_lower
+            ]
+
+        if ids:
+            self._collection.delete(ids=ids)
+            return len(ids)
         return 0
