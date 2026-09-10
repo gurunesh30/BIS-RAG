@@ -5,6 +5,7 @@ import { ThemeToggle } from '@/components/layout/ThemeToggle'
 import { HeaderStatsBar } from '@/components/layout/HeaderStatsBar'
 import { RagAssistant } from '@/components/rag/RagAssistant'
 import { GraphVerifier } from '@/components/graph/GraphVerifier'
+import { ProductForm } from '@/components/product/ProductForm'
 import { Shield, Activity, Menu, X, Cpu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -122,6 +123,10 @@ function App() {
           <TabsContent value="graph" className="flex-1 border-none p-0 h-full overflow-hidden focus-visible:outline-none">
             <GraphVerifier />
           </TabsContent>
+
+          <TabsContent value="product" className="flex-1 border-none p-0 h-full overflow-hidden focus-visible:outline-none">
+            <ProductForm />
+          </TabsContent>
         </main>
       </Tabs>
     </div>
@@ -129,3 +134,4 @@ function App() {
 }
 
 export default App
+
