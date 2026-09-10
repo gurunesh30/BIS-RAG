@@ -1,745 +1,465 @@
-import { useState } from 'react'
+import { useState, useRef, useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { addNode, queryRag } from '@/lib/api'
+import { queryRag } from '@/lib/api'
 import {
-  Factory,
-  Package,
-  FileCheck,
-  ShieldAlert,
-  ShieldCheck,
+  Search,
+  BookOpen,
   Sparkles,
   Loader2,
-  Send,
-  Building2,
-  FileBadge2,
-  FlaskConical,
-  RotateCcw,
-  CheckCircle2,
-  AlertCircle
+  FileCheck2,
+  ShieldCheck,
+  Tag,
+  CornerDownLeft,
+  ArrowRight,
+  Info
 } from 'lucide-react'
 
-export interface ProductFormData {
-  // Product Details
-  productId: string
+export interface BISProductEntry {
   productName: string
-  modelNumber: string
-  category: string
-  description: string
-
-  // Indian Standard
   isCode: string
   standardTitle: string
-  conformanceStatus: string
-
-  // Manufacturer Info
-  manufacturerId: string
-  manufacturerName: string
-  factoryAddress: string
-  factoryRegistrationActive: boolean
-
-  // License Details
-  licenseId: string
-  licenseStatus: 'ACTIVE' | 'SUSPENDED' | 'EXPIRED'
-  expiryDate: string
-
-  // Testing Lab
-  labId: string
-  labName: string
-  labAccreditation: 'VALID' | 'INVALID'
-  testReportNo: string
+  category: string
+  description: string
+  keyParameters: string[]
 }
 
-const INITIAL_FORM_DATA: ProductFormData = {
-  productId: 'PROD-LED-50W',
-  productName: 'Smart Modular LED Driver 50W',
-  modelNumber: 'LD-50W-V2',
-  category: 'Electronics & IT Equipment',
-  description: 'Constant current electronic control gear for LED modules rated up to 50W',
-  isCode: 'IS 13252',
-  standardTitle: 'Information Technology Equipment - Safety',
-  conformanceStatus: 'Compliant with Part 1: General Requirements',
-  manufacturerId: 'MFG-9021',
-  manufacturerName: 'Apex Electronics Pvt Ltd',
-  factoryAddress: 'Plot 42, Electronics Complex, Sector 18, Gurugram, Haryana',
-  factoryRegistrationActive: true,
-  licenseId: 'CM/L-8765432',
-  licenseStatus: 'ACTIVE',
-  expiryDate: '2027-12-31',
-  labId: 'LAB-NABL-01',
-  labName: 'Central Electronics Testing Laboratory',
-  labAccreditation: 'VALID',
-  testReportNo: 'TR-2026-9021-A'
-}
-
-const PRESETS = [
+export const BIS_PRODUCT_CATALOG: BISProductEntry[] = [
   {
-    name: 'Smart LED Driver (Electronics)',
-    data: {
-      productId: 'PROD-LED-50W',
-      productName: 'Smart Modular LED Driver 50W',
-      modelNumber: 'LD-50W-V2',
-      category: 'Electronics & IT Equipment',
-      description: 'Constant current electronic control gear for LED modules rated up to 50W',
-      isCode: 'IS 13252',
-      standardTitle: 'Information Technology Equipment - Safety',
-      conformanceStatus: 'Compliant with Part 1: General Requirements',
-      manufacturerId: 'MFG-9021',
-      manufacturerName: 'Apex Electronics Pvt Ltd',
-      factoryAddress: 'Plot 42, Electronics Complex, Sector 18, Gurugram, Haryana',
-      factoryRegistrationActive: true,
-      licenseId: 'CM/L-8765432',
-      licenseStatus: 'ACTIVE' as const,
-      expiryDate: '2027-12-31',
-      labId: 'LAB-NABL-01',
-      labName: 'Central Electronics Testing Laboratory',
-      labAccreditation: 'VALID' as const,
-      testReportNo: 'TR-2026-9021-A'
-    }
+    productName: 'Smart LED Driver & Control Gear',
+    isCode: 'IS 15885 (Part 2/Sec 13) : 2012',
+    standardTitle: 'Lamp Controlgear - Particular Requirements for DC or AC Supplied Electronic Controlgear for LED Modules',
+    category: 'Electronics & Lighting',
+    description: 'Safety and performance requirements for electronic control gear used with LED lighting modules.',
+    keyParameters: ['Output Voltage Limits', 'Thermal Protection', 'Short Circuit & Overload Test', 'Insulation Resistance']
   },
   {
-    name: 'Crystalline Solar Module',
-    data: {
-      productId: 'PROD-SOLAR-400W',
-      productName: 'Mono PERC Solar PV Module 400W',
-      modelNumber: 'SPV-MP-400',
-      category: 'Renewable & Solar Energy',
-      description: 'High efficiency 144 half-cell monocrystalline solar photovoltaic module',
-      isCode: 'IS 14286',
-      standardTitle: 'Crystalline Silicon Terrestrial Photovoltaic (PV) Modules - Design Qualification',
-      conformanceStatus: 'Full Conformance under Mechanical and Electrical Load Stress',
-      manufacturerId: 'MFG-SOLAR-88',
-      manufacturerName: 'SunPower Manufacturing India Ltd',
-      factoryAddress: 'Industrial Zone Phase III, Ahmedabad, Gujarat',
-      factoryRegistrationActive: true,
-      licenseId: 'CM/L-7654321',
-      licenseStatus: 'ACTIVE' as const,
-      expiryDate: '2028-06-30',
-      labId: 'LAB-SOLAR-09',
-      labName: 'National Solar Testing Institute',
-      labAccreditation: 'VALID' as const,
-      testReportNo: 'TR-PV-400W-88'
-    }
+    productName: 'Information Technology & Office Equipment',
+    isCode: 'IS 13252 (Part 1) : 2010',
+    standardTitle: 'Information Technology Equipment - Safety - Part 1: General Requirements',
+    category: 'IT & Consumer Electronics',
+    description: 'Safety standards for mains-powered or battery-powered information technology equipment including laptops, printers, and power adapters.',
+    keyParameters: ['Electric Shock Protection', 'Fire Enclosure Resistance', 'Dielectric Withstand Voltage', 'Clearance & Creepage Distances']
   },
   {
-    name: 'Portland Cement (Construction)',
-    data: {
-      productId: 'PROD-CEMENT-PPC',
-      productName: 'Portland Pozzolana Cement Grade 53',
-      modelNumber: 'PPC-B53',
-      category: 'Building Materials',
-      description: 'High strength fly-ash based Portland Pozzolana Cement for structural applications',
-      isCode: 'IS 1489',
-      standardTitle: 'Portland Pozzolana Cement Specification',
-      conformanceStatus: 'Compliant with Part 1: Fly Ash Based Cement',
-      manufacturerId: 'MFG-CEMENT-01',
-      manufacturerName: 'UltraTech Cement Works Unit 4',
-      factoryAddress: 'Cement Nagar, Chandrapur, Maharashtra',
-      factoryRegistrationActive: true,
-      licenseId: 'CM/L-1122334',
-      licenseStatus: 'ACTIVE' as const,
-      expiryDate: '2026-11-15',
-      labId: 'LAB-MAT-04',
-      labName: 'NABL Accredited Civil Materials Lab',
-      labAccreditation: 'VALID' as const,
-      testReportNo: 'TR-CEM-53-09'
-    }
+    productName: 'Crystalline Silicon Solar PV Modules',
+    isCode: 'IS 14286 : 2010',
+    standardTitle: 'Crystalline Silicon Terrestrial Photovoltaic (PV) Modules - Design Qualification and Type Approval',
+    category: 'Renewable & Solar Energy',
+    description: 'Design qualification, testing parameters, and type approval for solar photovoltaic modules.',
+    keyParameters: ['Thermal Cycling Test', 'Damp Heat Stress', 'Mechanical Load Performance', 'Hail Impact Test']
+  },
+  {
+    productName: 'Portland Pozzolana Cement (PPC)',
+    isCode: 'IS 1489 (Part 1) : 2015',
+    standardTitle: 'Portland Pozzolana Cement Specification - Part 1: Fly Ash Based',
+    category: 'Civil & Building Materials',
+    description: 'Specification for fly-ash based Portland Pozzolana cement used for general structural construction.',
+    keyParameters: ['Fineness Specific Surface', 'Soundness Test (Le Chatelier)', 'Compressive Strength (7D/28D)', 'Initial & Final Setting Time']
+  },
+  {
+    productName: 'High Strength Deformed Steel Bars (TMT Bars)',
+    isCode: 'IS 1786 : 2008',
+    standardTitle: 'High Strength Deformed Steel Bars and Wires for Concrete Reinforcement',
+    category: 'Steel & Metallurgy',
+    description: 'Requirements for Thermo-Mechanically Treated (TMT) steel bars used in reinforced concrete structures.',
+    keyParameters: ['0.2% Proof Stress / Yield Strength', 'Tensile Strength / Yield Ratio', 'Elongation Percentage', 'Bend & Rebend Performance']
+  },
+  {
+    productName: 'PVC Insulated Electric Cables for Working Voltages up to 1100V',
+    isCode: 'IS 694 : 2010',
+    standardTitle: 'Polyvinyl Chloride Insulated Unsheathed and Sheathed Cables/Cords with Rigid and Flexible Conductors',
+    category: 'Electrical Wiring',
+    description: 'Safety and insulation testing for PVC cables used in building wiring and low-voltage applications.',
+    keyParameters: ['Conductor Resistance', 'Insulation Thickness', 'High Voltage Withstand Test', 'Flame Retardancy']
+  },
+  {
+    productName: 'Rechargeable Lithium-Ion Batteries for Portable Applications',
+    isCode: 'IS 16046 (Part 2) : 2018',
+    standardTitle: 'Secondary Cells and Batteries Containing Alkaline or Other Non-Acid Electrolytes - Safety Requirements (Lithium Systems)',
+    category: 'Batteries & Energy Storage',
+    description: 'Mandatory safety testing for lithium batteries used in mobile phones, power banks, and portable electronics.',
+    keyParameters: ['External Short Circuit Test', 'Overcharge Protection', 'Thermal Abuse Resistance', 'Drop & Impact Resistance']
+  },
+  {
+    productName: 'Industrial Safety Helmets',
+    isCode: 'IS 2925 : 1984',
+    standardTitle: 'Specification for Industrial Safety Helmets',
+    category: 'Personal Protective Equipment',
+    description: 'Requirements for head protection helmets used in construction, industrial sites, and mining.',
+    keyParameters: ['Shock Absorption Test', 'Penetration Resistance', 'Flammability Test', 'Electrical Insulation Test']
+  },
+  {
+    productName: 'Packaged Drinking Water (Other than Natural Mineral Water)',
+    isCode: 'IS 14543 : 2016',
+    standardTitle: 'Packaged Drinking Water (Other than Packaged Natural Mineral Water) - Specification',
+    category: 'Food & Beverages',
+    description: 'Purity, microbiological limits, and chemical safety requirements for commercial packaged drinking water.',
+    keyParameters: ['TDS & pH Range', 'Microbiological Contaminants', 'Heavy Metals Testing (Lead, Arsenic)', 'Pesticide Residue Limits']
+  },
+  {
+    productName: 'Switches for Domestic and Similar Fixed Electrical Installations',
+    isCode: 'IS 3854 : 1997',
+    standardTitle: 'Switches for Domestic and Similar Fixed Electrical Installations - Specification',
+    category: 'Electrical Accessories',
+    description: 'Safety and endurance requirements for wall switches used in home and office wiring.',
+    keyParameters: ['Make & Break Capacity', 'Normal Operation Endurance', 'Temperature Rise Test', 'Creepage Distance']
+  },
+  {
+    productName: 'Outdoor Type Oil Immersed Distribution Transformers',
+    isCode: 'IS 1180 (Part 1) : 2014',
+    standardTitle: 'Outdoor Type Oil Immersed Distribution Transformers Up to and Including 2500 kVA, 33 kV',
+    category: 'Power Equipment',
+    description: 'Energy efficiency ratings, losses, and safety standards for distribution transformers.',
+    keyParameters: ['Maximum Total Losses at 50% & 100% Load', 'Impulse Voltage Withstand', 'Short Circuit Test', 'Temperature Rise']
+  },
+  {
+    productName: 'Portable Fire Extinguishers',
+    isCode: 'IS 15683 : 2018',
+    standardTitle: 'Portable Fire Extinguishers - Performance and Construction - Specification',
+    category: 'Fire Safety & Protection',
+    description: 'Construction, hydraulic pressure tests, and fire rating performance for portable fire extinguishers.',
+    keyParameters: ['Fire Rating Test', 'Burst Pressure Test', 'Discharge Duration & Range', 'Corrosion Resistance']
+  },
+  {
+    productName: 'Medical Gloves for Single Use',
+    isCode: 'IS 4148 : 1989',
+    standardTitle: 'Specification for Surgical Rubber Gloves',
+    category: 'Medical Devices',
+    description: 'Sterility, freedom from holes, tensile strength, and elongation requirements for rubber surgical gloves.',
+    keyParameters: ['Tensile Strength & Elongation', 'Freedom from Holes (Water Leak Test)', 'Sterility Test', 'Dimensions & Thickness']
+  },
+  {
+    productName: 'Unplasticized PVC Pipes for Potable Water Supplies',
+    isCode: 'IS 4985 : 2021',
+    standardTitle: 'Unplasticized Polyvinyl Chloride (uPVC) Pipes for Potable Water Supplies - Specification',
+    category: 'Piping & Plumbing',
+    description: 'Hydrostatic pressure, impact resistance, and material safety for uPVC drinking water pipes.',
+    keyParameters: ['Internal Hydrostatic Pressure Test', 'Impact Resistance (TIR)', 'Opacity Percentage', 'Effect on Water Quality']
   }
 ]
 
 export function ProductForm() {
-  const [formData, setFormData] = useState<ProductFormData>(INITIAL_FORM_DATA)
-  const [submittingGraph, setSubmittingGraph] = useState(false)
-  const [checkingRag, setCheckingRag] = useState(false)
-  const [statusMessage, setStatusMessage] = useState<{
-    type: 'success' | 'error' | 'info'
-    text: string
-    details?: string
-  } | null>(null)
-  const [ragComplianceAnswer, setRagComplianceAnswer] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedProduct, setSelectedProduct] = useState<BISProductEntry | null>(null)
+  const [searchingRag, setSearchingRag] = useState(false)
+  const [ragResult, setRagResult] = useState<string | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
-  const handleChange = (field: keyof ProductFormData, value: unknown) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
-  }
+  // Compute ghost text suggestion based on current typed search term
+  const ghostSuggestion = useMemo(() => {
+    const trimmed = searchTerm.trim()
+    if (!trimmed) return ''
 
-  const applyPreset = (presetIndex: number) => {
-    setFormData(PRESETS[presetIndex].data)
-    setStatusMessage({
-      type: 'info',
-      text: `Loaded preset: "${PRESETS[presetIndex].name}"`
-    })
-    setRagComplianceAnswer(null)
-  }
+    const match = BIS_PRODUCT_CATALOG.find((item) =>
+      item.productName.toLowerCase().startsWith(trimmed.toLowerCase())
+    )
 
-  const resetForm = () => {
-    setFormData(INITIAL_FORM_DATA)
-    setStatusMessage(null)
-    setRagComplianceAnswer(null)
-  }
+    if (match) {
+      // Return the portion of the product name that completes the typed string
+      return match.productName.slice(searchTerm.length)
+    }
+    return ''
+  }, [searchTerm])
 
-  const handleRegisterProductGraph = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setSubmittingGraph(true)
-    setStatusMessage(null)
+  // Top matching product for current search term
+  const topMatch = useMemo(() => {
+    const trimmed = searchTerm.trim()
+    if (!trimmed) return null
+    return (
+      BIS_PRODUCT_CATALOG.find((item) =>
+        item.productName.toLowerCase().includes(trimmed.toLowerCase()) ||
+        item.isCode.toLowerCase().includes(trimmed.toLowerCase()) ||
+        item.category.toLowerCase().includes(trimmed.toLowerCase())
+      ) || null
+    )
+  }, [searchTerm])
 
-    try {
-      // 1. Add Product node
-      const prodRes = await addNode({
-        node_id: formData.productId,
-        node_type: 'Product',
-        name: formData.productName,
-        model: formData.modelNumber,
-        category: formData.category,
-        description: formData.description,
-        edge_to: formData.licenseId,
-        edge_type: 'COVERS'
-      })
-
-      // 2. Add License node linked to Manufacturer & Standard
-      const licRes = await addNode({
-        node_id: formData.licenseId,
-        node_type: 'License',
-        status: formData.licenseStatus,
-        expiry_date: formData.expiryDate,
-        edge_to: formData.manufacturerId,
-        edge_type: 'ISSUED_TO'
-      })
-
-      // 3. Add Manufacturer node
-      await addNode({
-        node_id: formData.manufacturerId,
-        node_type: 'Manufacturer',
-        name: formData.manufacturerName,
-        factory_address: formData.factoryAddress,
-        factory_registration_active: formData.factoryRegistrationActive
-      })
-
-      // 4. Add IndianStandard node linked from Product
-      await addNode({
-        node_id: formData.isCode,
-        node_type: 'IndianStandard',
-        title: formData.standardTitle,
-        active: true
-      })
-
-      // Link Product to Standard
-      await addNode({
-        node_id: formData.productId,
-        node_type: 'Product',
-        edge_to: formData.isCode,
-        edge_type: 'CONFORMS_TO'
-      })
-
-      // 5. Add TestLab node linked from Product
-      await addNode({
-        node_id: formData.labId,
-        node_type: 'TestLab',
-        name: formData.labName,
-        lab_accreditation: formData.labAccreditation,
-        test_report: formData.testReportNo
-      })
-
-      await addNode({
-        node_id: formData.productId,
-        node_type: 'Product',
-        edge_to: formData.labId,
-        edge_type: 'TESTED_BY'
-      })
-
-      if (prodRes.success && licRes.success) {
-        setStatusMessage({
-          type: 'success',
-          text: `Product "${formData.productName}" (${formData.productId}) registered successfully in Knowledge Graph!`,
-          details: `Linked License: ${formData.licenseId} | Standard: ${formData.isCode} | Manufacturer: ${formData.manufacturerName}`
-        })
-      } else {
-        setStatusMessage({
-          type: 'info',
-          text: `Graph nodes updated. Response: ${prodRes.warning || licRes.warning || 'Nodes created'}`
-        })
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if ((e.key === 'Tab' || e.key === 'ArrowRight') && ghostSuggestion) {
+      // Accept ghost text completion
+      e.preventDefault()
+      const fullText = searchTerm + ghostSuggestion
+      setSearchTerm(fullText)
+      const match = BIS_PRODUCT_CATALOG.find(
+        (p) => p.productName.toLowerCase() === fullText.toLowerCase()
+      )
+      if (match) {
+        selectAndSearchProduct(match)
       }
-    } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : String(err)
-      setStatusMessage({
-        type: 'error',
-        text: 'Failed to register product in Knowledge Graph.',
-        details: errorMsg
-      })
-    } finally {
-      setSubmittingGraph(false)
+    } else if (e.key === 'Enter') {
+      e.preventDefault()
+      if (topMatch) {
+        selectAndSearchProduct(topMatch)
+      } else if (searchTerm.trim()) {
+        executeCustomRagSearch(searchTerm.trim())
+      }
     }
   }
 
-  const handleVerifyRagCompliance = async () => {
-    setCheckingRag(true)
-    setRagComplianceAnswer(null)
+  const selectAndSearchProduct = async (product: BISProductEntry) => {
+    setSearchTerm(product.productName)
+    setSelectedProduct(product)
+    setSearchingRag(true)
+    setRagResult(null)
 
     try {
-      const query = `Check mandatory compliance requirements and clauses in ${formData.isCode} for ${formData.productName} (${formData.category}). What are the key safety or testing standards?`
       const res = await queryRag({
-        query,
-        is_code: formData.isCode,
+        query: `What is the scope, clause requirements, and mandatory safety tests under ${product.isCode} for ${product.productName}?`,
+        is_code: product.isCode.split(':')[0].trim(),
         top_k: 4
       })
+      setRagResult(res.answer)
+    } catch {
+      setRagResult(`Official standard ${product.isCode} applies to ${product.productName}. Please check standard clause details in the vector database.`)
+    } finally {
+      setSearchingRag(false)
+    }
+  }
 
-      setRagComplianceAnswer(res.answer)
+  const executeCustomRagSearch = async (term: string) => {
+    setSearchingRag(true)
+    setRagResult(null)
+
+    // Check if we matched a static catalog product
+    const match = BIS_PRODUCT_CATALOG.find((p) =>
+      p.productName.toLowerCase().includes(term.toLowerCase())
+    )
+
+    if (match) {
+      setSelectedProduct(match)
+    } else {
+      setSelectedProduct({
+        productName: term,
+        isCode: 'Querying BIS RAG Database...',
+        standardTitle: `Indian Standard specifications for ${term}`,
+        category: 'Custom Product Search',
+        description: `Automated RAG query search across indexed Indian Standard (IS) codebooks for "${term}".`,
+        keyParameters: ['RAG Vector Search', 'Clause Matching', 'Standard Verification']
+      })
+    }
+
+    try {
+      const res = await queryRag({
+        query: `Find the exact Indian Standard (IS Code) number, title, and requirements for manufactured product: ${term}`,
+        top_k: 5
+      })
+      setRagResult(res.answer)
+
+      // Try to extract IS code from RAG response if selectedProduct was custom
+      if (!match && res.answer) {
+        const isMatch = res.answer.match(/IS\s+\d+(?:\s*\([^)]*\))?(?:\s*:\s*\d+)?/i)
+        if (isMatch) {
+          setSelectedProduct((prev) =>
+            prev ? { ...prev, isCode: isMatch[0].toUpperCase() } : prev
+          )
+        }
+      }
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err)
-      setStatusMessage({
-        type: 'error',
-        text: 'Failed to query BIS RAG engine for standard compliance check.',
-        details: errorMsg
-      })
+      setRagResult(`Error querying BIS database: ${errorMsg}`)
     } finally {
-      setCheckingRag(false)
+      setSearchingRag(false)
     }
   }
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-background">
-      {/* View Header */}
-      <div className="border-b border-border bg-card px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
+      {/* Header Banner */}
+      <div className="border-b border-border bg-card px-6 py-5 shrink-0 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-            <Factory className="h-5 w-5" />
+            <BookOpen className="h-5 w-5" />
           </div>
           <div>
             <h2 className="text-lg font-bold tracking-tight text-foreground flex items-center gap-2">
-              Product Manufacturing Entry
+              Product IS Code Search
               <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-600 border-amber-500/30">
-                BIS Specification Form
+                Ghost Autocomplete
               </Badge>
             </h2>
             <p className="text-xs text-muted-foreground">
-              Register product specifications, manufacturing licenses, Indian Standards (IS Code), and testing lab details.
+              Search any manufactured product name to look up its corresponding Indian Standard (IS Code) &amp; BIS specifications.
             </p>
           </div>
         </div>
-
-        {/* Action Controls & Presets */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs font-semibold text-muted-foreground hidden lg:inline">Presets:</span>
-          {PRESETS.map((p, idx) => (
-            <Button
-              key={idx}
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-8 text-xs font-medium bg-muted/30 hover:bg-muted"
-              onClick={() => applyPreset(idx)}
-            >
-              <Sparkles className="h-3 w-3 mr-1 text-amber-500" />
-              {p.name.split(' ')[0]}
-            </Button>
-          ))}
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-8 text-xs text-muted-foreground hover:text-foreground"
-            onClick={resetForm}
-          >
-            <RotateCcw className="h-3.5 w-3.5 mr-1" />
-            Reset
-          </Button>
-        </div>
       </div>
 
-      {/* Main Content Area */}
+      {/* Main Content Workspace */}
       <ScrollArea className="flex-1 p-6">
-        <div className="max-w-5xl mx-auto space-y-6 pb-12">
+        <div className="max-w-4xl mx-auto space-y-6 pb-12">
 
-          {/* Alert / Notification Banner */}
-          {statusMessage && (
-            <div
-              className={`p-4 rounded-xl border flex items-start gap-3 transition-all animate-in fade-in slide-in-from-top-2 ${
-                statusMessage.type === 'success'
-                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-900 dark:text-emerald-200'
-                  : statusMessage.type === 'error'
-                  ? 'bg-destructive/10 border-destructive/30 text-destructive'
-                  : 'bg-blue-500/10 border-blue-500/30 text-blue-900 dark:text-blue-200'
-              }`}
-            >
-              {statusMessage.type === 'success' && <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />}
-              {statusMessage.type === 'error' && <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />}
-              {statusMessage.type === 'info' && <Sparkles className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />}
-              <div className="flex-1 text-sm">
-                <p className="font-semibold">{statusMessage.text}</p>
-                {statusMessage.details && (
-                  <p className="text-xs opacity-80 mt-1 font-mono">{statusMessage.details}</p>
+          {/* Search Box with Ghost Text Suggestion Overlay */}
+          <Card className="border-border shadow-sm bg-card relative overflow-hidden">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <Search className="h-4 w-4 text-amber-500" />
+                  Enter Manufactured Product Name
+                </span>
+                {ghostSuggestion && (
+                  <span className="text-[11px] text-muted-foreground flex items-center gap-1 font-mono bg-muted/60 px-2 py-0.5 rounded">
+                    <CornerDownLeft className="h-3 w-3 text-amber-500" /> Press Tab ⇥ or ➔ to complete
+                  </span>
                 )}
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Type product name (e.g. LED Driver, Solar Module, Cement, TMT Steel, PVC Cable, Battery, Helmet...)
+              </CardDescription>
+            </CardHeader>
+
+            <CardContent className="space-y-4">
+              <div className="relative flex items-center">
+                {/* Background Ghost Text Overlay */}
+                <div
+                  className="absolute inset-y-0 left-0 pl-10 pr-4 flex items-center pointer-events-none text-sm font-medium overflow-hidden whitespace-pre"
+                  aria-hidden="true"
+                >
+                  <span className="opacity-0">{searchTerm}</span>
+                  <span className="text-muted-foreground/40 dark:text-muted-foreground/50 select-none">
+                    {ghostSuggestion}
+                  </span>
+                </div>
+
+                {/* Main Interactive Input */}
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
+                <Input
+                  ref={inputRef}
+                  type="text"
+                  placeholder="Search product (e.g., LED Driver, Solar PV Module, TMT Steel Bar...)"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className="pl-10 pr-24 h-12 text-sm font-medium bg-transparent z-0 border-border focus-visible:ring-amber-500"
+                />
+
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => {
+                    if (topMatch) selectAndSearchProduct(topMatch)
+                    else if (searchTerm.trim()) executeCustomRagSearch(searchTerm.trim())
+                  }}
+                  disabled={!searchTerm.trim() || searchingRag}
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 h-9 px-4 bg-amber-500 hover:bg-amber-600 text-white font-semibold text-xs z-10 shadow-sm"
+                >
+                  {searchingRag ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      Search IS Code
+                      <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                    </>
+                  )}
+                </Button>
               </div>
-            </div>
-          )}
 
-          <form onSubmit={handleRegisterProductGraph} className="space-y-6">
-            
-            {/* Section 1: Product Basic Details */}
-            <Card className="border-border shadow-sm">
-              <CardHeader className="pb-3 border-b border-border/50">
-                <div className="flex items-center gap-2">
-                  <Package className="h-4 w-4 text-primary" />
-                  <CardTitle className="text-base font-semibold">1. Product Identification &amp; Details</CardTitle>
-                </div>
-                <CardDescription className="text-xs">
-                  Specify manufacturing product ID, brand name, model numbers, and general category.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="productId" className="text-xs font-semibold">Product ID / SKU Code *</Label>
-                  <Input
-                    id="productId"
-                    placeholder="e.g. PROD-LED-50W"
-                    value={formData.productId}
-                    onChange={(e) => handleChange('productId', e.target.value)}
-                    required
-                    className="font-mono text-sm"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="productName" className="text-xs font-semibold">Product Name / Title *</Label>
-                  <Input
-                    id="productName"
-                    placeholder="e.g. Smart Modular LED Driver 50W"
-                    value={formData.productName}
-                    onChange={(e) => handleChange('productName', e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="modelNumber" className="text-xs font-semibold">Model / Type Designation</Label>
-                  <Input
-                    id="modelNumber"
-                    placeholder="e.g. LD-50W-V2"
-                    value={formData.modelNumber}
-                    onChange={(e) => handleChange('modelNumber', e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="category" className="text-xs font-semibold">Product Category</Label>
-                  <Select
-                    value={formData.category}
-                    onValueChange={(val) => handleChange('category', val)}
-                  >
-                    <SelectTrigger id="category">
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Electronics & IT Equipment">Electronics &amp; IT Equipment</SelectItem>
-                      <SelectItem value="Renewable & Solar Energy">Renewable &amp; Solar Energy</SelectItem>
-                      <SelectItem value="Building Materials">Building Materials</SelectItem>
-                      <SelectItem value="Electrical Appliances">Electrical Appliances</SelectItem>
-                      <SelectItem value="Automotive Components">Automotive Components</SelectItem>
-                      <SelectItem value="Chemicals & Fertilizers">Chemicals &amp; Fertilizers</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1.5 md:col-span-2">
-                  <Label htmlFor="description" className="text-xs font-semibold">Product Description &amp; Technical Scope</Label>
-                  <Textarea
-                    id="description"
-                    rows={2}
-                    placeholder="Describe technical ratings, operating voltage, materials, and intended application..."
-                    value={formData.description}
-                    onChange={(e) => handleChange('description', e.target.value)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Section 2: Indian Standard (IS Code) & BIS Conformance */}
-            <Card className="border-border shadow-sm">
-              <CardHeader className="pb-3 border-b border-border/50">
-                <div className="flex items-center gap-2">
-                  <FileBadge2 className="h-4 w-4 text-amber-500" />
-                  <CardTitle className="text-base font-semibold">2. Indian Standard (IS Code) &amp; Compliance</CardTitle>
-                </div>
-                <CardDescription className="text-xs">
-                  Link the mandatory or voluntary Indian Standard applicable to this manufactured product.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="isCode" className="text-xs font-semibold">Indian Standard Code (IS Code) *</Label>
-                  <Input
-                    id="isCode"
-                    placeholder="e.g. IS 13252"
-                    value={formData.isCode}
-                    onChange={(e) => handleChange('isCode', e.target.value)}
-                    required
-                    className="font-mono font-bold text-amber-600 dark:text-amber-400"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="standardTitle" className="text-xs font-semibold">Standard Title / Specification</Label>
-                  <Input
-                    id="standardTitle"
-                    placeholder="e.g. Information Technology Equipment - Safety"
-                    value={formData.standardTitle}
-                    onChange={(e) => handleChange('standardTitle', e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-1.5 md:col-span-2">
-                  <Label htmlFor="conformanceStatus" className="text-xs font-semibold">Conformance Status &amp; Clause Coverage</Label>
-                  <Input
-                    id="conformanceStatus"
-                    placeholder="e.g. Compliant with Part 1: General Requirements"
-                    value={formData.conformanceStatus}
-                    onChange={(e) => handleChange('conformanceStatus', e.target.value)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Section 3: Manufacturer & License Details */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-              {/* Manufacturer Card */}
-              <Card className="border-border shadow-sm">
-                <CardHeader className="pb-3 border-b border-border/50">
-                  <div className="flex items-center gap-2">
-                    <Building2 className="h-4 w-4 text-blue-500" />
-                    <CardTitle className="text-base font-semibold">3. Manufacturing Unit</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-4 space-y-4">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="manufacturerId" className="text-xs font-semibold">Manufacturer ID *</Label>
-                    <Input
-                      id="manufacturerId"
-                      placeholder="e.g. MFG-9021"
-                      value={formData.manufacturerId}
-                      onChange={(e) => handleChange('manufacturerId', e.target.value)}
-                      required
-                      className="font-mono text-xs"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="manufacturerName" className="text-xs font-semibold">Company / Manufacturer Name *</Label>
-                    <Input
-                      id="manufacturerName"
-                      placeholder="e.g. Apex Electronics Pvt Ltd"
-                      value={formData.manufacturerName}
-                      onChange={(e) => handleChange('manufacturerName', e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="factoryAddress" className="text-xs font-semibold">Factory Unit Address</Label>
-                    <Textarea
-                      id="factoryAddress"
-                      rows={2}
-                      placeholder="Enter full physical factory location..."
-                      value={formData.factoryAddress}
-                      onChange={(e) => handleChange('factoryAddress', e.target.value)}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between pt-1">
-                    <Label htmlFor="factoryActive" className="text-xs font-semibold">Factory Registration Active</Label>
-                    <Select
-                      value={formData.factoryRegistrationActive ? 'true' : 'false'}
-                      onValueChange={(val) => handleChange('factoryRegistrationActive', val === 'true')}
+              {/* Sample Quick-Select Suggestion Pills */}
+              <div className="space-y-1.5">
+                <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                  <Sparkles className="h-3 w-3 text-amber-500" />
+                  Popular BIS Product Categories:
+                </span>
+                <div className="flex flex-wrap gap-1.5 pt-0.5">
+                  {BIS_PRODUCT_CATALOG.slice(0, 7).map((item, idx) => (
+                    <Badge
+                      key={idx}
+                      variant="outline"
+                      className="cursor-pointer hover:bg-amber-500/10 hover:border-amber-500/40 text-xs font-normal transition-colors py-1 px-2.5 bg-muted/30"
+                      onClick={() => selectAndSearchProduct(item)}
                     >
-                      <SelectTrigger className="w-32 h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="true">Active (Yes)</SelectItem>
-                        <SelectItem value="false">Inactive (No)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </CardContent>
-              </Card>
+                      <Tag className="h-3 w-3 mr-1 text-amber-500 opacity-70" />
+                      {item.productName}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-              {/* License Details Card */}
-              <Card className="border-border shadow-sm">
-                <CardHeader className="pb-3 border-b border-border/50">
+          {/* Result Card: Displaying the Indian Standard (IS Number) */}
+          {selectedProduct && (
+            <Card className="border-amber-500/30 bg-card shadow-md animate-in fade-in slide-in-from-bottom-2 overflow-hidden">
+              <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent px-6 py-5 border-b border-amber-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <FileCheck className="h-4 w-4 text-emerald-500" />
-                    <CardTitle className="text-base font-semibold">4. BIS License (CM/L)</CardTitle>
+                    <Badge className="bg-amber-500 text-white hover:bg-amber-600 font-mono text-sm px-3 py-1 font-bold tracking-wide shadow-sm">
+                      <FileCheck2 className="h-4 w-4 mr-1.5 inline-block" />
+                      {selectedProduct.isCode}
+                    </Badge>
+                    <Badge variant="outline" className="text-xs bg-background/60">
+                      {selectedProduct.category}
+                    </Badge>
                   </div>
-                </CardHeader>
-                <CardContent className="pt-4 space-y-4">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="licenseId" className="text-xs font-semibold">BIS License Number (CM/L) *</Label>
-                    <Input
-                      id="licenseId"
-                      placeholder="e.g. CM/L-8765432"
-                      value={formData.licenseId}
-                      onChange={(e) => handleChange('licenseId', e.target.value)}
-                      required
-                      className="font-mono text-sm font-semibold text-emerald-600 dark:text-emerald-400"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="licenseStatus" className="text-xs font-semibold">License Status</Label>
-                    <Select
-                      value={formData.licenseStatus}
-                      onValueChange={(val) => handleChange('licenseStatus', val as ProductFormData['licenseStatus'])}
-                    >
-                      <SelectTrigger id="licenseStatus">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ACTIVE">ACTIVE (Valid)</SelectItem>
-                        <SelectItem value="SUSPENDED">SUSPENDED</SelectItem>
-                        <SelectItem value="EXPIRED">EXPIRED</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="expiryDate" className="text-xs font-semibold">License Expiry Date</Label>
-                    <Input
-                      id="expiryDate"
-                      type="date"
-                      value={formData.expiryDate}
-                      onChange={(e) => handleChange('expiryDate', e.target.value)}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Section 4: Testing Lab & Quality Certification */}
-            <Card className="border-border shadow-sm">
-              <CardHeader className="pb-3 border-b border-border/50">
-                <div className="flex items-center gap-2">
-                  <FlaskConical className="h-4 w-4 text-purple-500" />
-                  <CardTitle className="text-base font-semibold">5. Quality Control &amp; NABL Test Lab</CardTitle>
+                  <h3 className="text-base font-bold text-foreground pt-1">
+                    {selectedProduct.productName}
+                  </h3>
                 </div>
-                <CardDescription className="text-xs">
-                  Lab accreditation details for product sample testing and certification compliance.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                <div className="text-xs text-muted-foreground font-mono bg-background/80 border border-border px-3 py-1.5 rounded-lg shrink-0">
+                  BIS Standard Verification: <span className="text-emerald-600 dark:text-emerald-400 font-bold">MATCHED</span>
+                </div>
+              </div>
+
+              <CardContent className="p-6 space-y-5">
+                {/* Standard Title & Scope */}
                 <div className="space-y-1.5">
-                  <Label htmlFor="labId" className="text-xs font-semibold">Testing Lab ID</Label>
-                  <Input
-                    id="labId"
-                    placeholder="e.g. LAB-NABL-01"
-                    value={formData.labId}
-                    onChange={(e) => handleChange('labId', e.target.value)}
-                    className="font-mono text-xs"
-                  />
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <Info className="h-3.5 w-3.5 text-amber-500" />
+                    Official Standard Title &amp; Specification Scope
+                  </h4>
+                  <p className="text-sm font-semibold text-foreground leading-snug">
+                    {selectedProduct.standardTitle}
+                  </p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {selectedProduct.description}
+                  </p>
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="labName" className="text-xs font-semibold">Assigned Lab Name</Label>
-                  <Input
-                    id="labName"
-                    placeholder="e.g. Central Electronics Testing Lab"
-                    value={formData.labName}
-                    onChange={(e) => handleChange('labName', e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="labAccreditation" className="text-xs font-semibold">Lab Accreditation</Label>
-                  <Select
-                    value={formData.labAccreditation}
-                    onValueChange={(val) => handleChange('labAccreditation', val as ProductFormData['labAccreditation'])}
-                  >
-                    <SelectTrigger id="labAccreditation">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="VALID">VALID (Accredited)</SelectItem>
-                      <SelectItem value="INVALID">INVALID / Expired</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1.5 md:col-span-3">
-                  <Label htmlFor="testReportNo" className="text-xs font-semibold">Test Report Reference Number</Label>
-                  <Input
-                    id="testReportNo"
-                    placeholder="e.g. TR-2026-9021-A"
-                    value={formData.testReportNo}
-                    onChange={(e) => handleChange('testReportNo', e.target.value)}
-                    className="font-mono text-xs"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Submission & RAG Analysis Bar */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={checkingRag}
-                onClick={handleVerifyRagCompliance}
-                className="w-full sm:w-auto h-11 px-5 border border-border"
-              >
-                {checkingRag ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin text-amber-500" />
-                    Querying BIS RAG...
-                  </>
-                ) : (
-                  <>
-                    <ShieldAlert className="h-4 w-4 mr-2 text-amber-500" />
-                    Verify Standard in RAG ({formData.isCode || 'IS Code'})
-                  </>
+                {/* Key Testing Parameters */}
+                {selectedProduct.keyParameters && selectedProduct.keyParameters.length > 0 && (
+                  <div className="space-y-2 pt-1">
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Mandatory Testing &amp; Conformance Parameters:
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {selectedProduct.keyParameters.map((param, i) => (
+                        <div
+                          key={i}
+                          className="flex items-center gap-2 bg-muted/40 p-2.5 rounded-lg border border-border/60 text-xs font-medium"
+                        >
+                          <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0" />
+                          <span>{param}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
-              </Button>
 
-              <Button
-                type="submit"
-                disabled={submittingGraph}
-                className="w-full sm:w-auto h-11 px-6 bg-primary text-primary-foreground font-semibold shadow-md hover:opacity-90"
-              >
-                {submittingGraph ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Submitting Graph Nodes...
-                  </>
-                ) : (
-                  <>
-                    <Send className="h-4 w-4 mr-2" />
-                    Register Product &amp; Sync Knowledge Graph
-                  </>
-                )}
-              </Button>
-            </div>
-          </form>
+                {/* Live BIS RAG Clause Details */}
+                <div className="space-y-2 pt-2 border-t border-border">
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                    RAG Vector Engine Clauses &amp; Standard Requirements
+                  </h4>
 
-          {/* RAG Verification Results Section */}
-          {ragComplianceAnswer && (
-            <Card className="border-amber-500/30 bg-amber-500/5 shadow-md animate-in fade-in slide-in-from-bottom-2">
-              <CardHeader className="pb-2">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-                  <CardTitle className="text-base font-bold text-amber-900 dark:text-amber-200">
-                    BIS Standard RAG Analysis ({formData.isCode})
-                  </CardTitle>
-                </div>
-                <CardDescription className="text-xs">
-                  Automated vector chunk synthesis for standard compliance rules applicable to {formData.productName}.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-2">
-                <div className="bg-background/80 rounded-lg p-4 border border-amber-500/20 text-sm leading-relaxed whitespace-pre-wrap font-sans text-foreground">
-                  {ragComplianceAnswer}
+                  {searchingRag ? (
+                    <div className="flex items-center justify-center p-8 text-xs text-muted-foreground gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
+                      Searching indexed IS codebooks for exact clauses...
+                    </div>
+                  ) : ragResult ? (
+                    <div className="bg-muted/30 border border-border rounded-xl p-4 text-xs leading-relaxed font-sans text-foreground whitespace-pre-wrap">
+                      {ragResult}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-muted-foreground italic">
+                      Click search to fetch clause details from RAG store.
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

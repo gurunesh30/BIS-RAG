@@ -47,9 +47,9 @@ export function TabNavigation() {
           <Factory className="h-4 w-4" />
         </div>
         <div className="flex flex-col text-left">
-          <span className="font-semibold leading-tight">Product Form</span>
+          <span className="font-semibold leading-tight">IS Code Finder</span>
           <span className="text-[11px] text-muted-foreground font-normal">
-            Manufacturing &amp; BIS Specs
+            Product to IS Number Lookup
           </span>
         </div>
         <FileInput className="ml-auto h-4 w-4 opacity-0 group-data-active:opacity-100 text-amber-500" />
