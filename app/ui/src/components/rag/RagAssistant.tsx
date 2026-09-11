@@ -5,8 +5,8 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import {
-  Loader2, Send, FileText, ExternalLink,
-  Upload, X, BookOpen, ChevronDown, ChevronUp, Filter, CheckCircle2, AlertCircle, Trash2
+  Loader2, Send, ArrowRight, Upload, X, BookOpen,
+  ChevronDown, CheckCircle2, AlertCircle, Trash2, Layers,
 } from 'lucide-react'
 import { ChatMessage } from '@/components/rag/ChatMessage'
 import { SourceDrawer } from '@/components/rag/SourceDrawer'
@@ -37,16 +37,15 @@ export function RagAssistant() {
   const [latestChunks, setLatestChunks] = useState<SourceChunk[]>([])
   const [latestCitations, setLatestCitations] = useState<Citation[]>([])
 
-  // IS code filter
   const [selectedCode, setSelectedCode] = useState<string>('all')
   const [indexedCodes, setIndexedCodes] = useState<string[]>([])
 
-  // PDF ingest
   const [ingestOpen, setIngestOpen] = useState(false)
   const [ingestFile, setIngestFile] = useState<File | null>(null)
   const [isIngesting, setIsIngesting] = useState(false)
   const [ingestResult, setIngestResult] = useState<{ filename: string; chunks: number; isDelete?: boolean } | null>(null)
   const [ingestError, setIngestError] = useState<string | null>(null)
+  const [deletingCode, setDeletingCode] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const textAreaRef = useRef<HTMLTextAreaElement>(null)
@@ -57,7 +56,7 @@ export function RagAssistant() {
       const codes = await listIsCodes()
       setIndexedCodes(codes)
     } catch {
-      // silently ignore — backend may not be up yet
+      // backend may not be up yet
     }
   }
 
@@ -71,8 +70,6 @@ export function RagAssistant() {
       if (viewport) viewport.scrollTop = viewport.scrollHeight
     }
   }, [messages])
-
-  // ── RAG query ──────────────────────────────────────────────────────────────
 
   const handleSubmit = async () => {
     if (!input.trim() || isLoading) return
@@ -132,8 +129,6 @@ export function RagAssistant() {
     textAreaRef.current?.focus()
   }
 
-  // ── PDF ingest ─────────────────────────────────────────────────────────────
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null
     setIngestFile(file)
@@ -148,7 +143,10 @@ export function RagAssistant() {
     setIngestError(null)
     try {
       const res = await ingestPdf(ingestFile)
-      setIngestResult({ filename: ingestFile.name, chunks: res.chunks_ingested ?? (res as unknown as Record<string, number>).chunks_added ?? 0 })
+      setIngestResult({
+        filename: ingestFile.name,
+        chunks: res.chunks_ingested ?? (res as unknown as Record<string, number>).chunks_added ?? 0,
+      })
       setIngestFile(null)
       if (fileInputRef.current) fileInputRef.current.value = ''
       await fetchCodes()
@@ -158,8 +156,6 @@ export function RagAssistant() {
       setIsIngesting(false)
     }
   }
-
-  const [deletingCode, setDeletingCode] = useState<string | null>(null)
 
   const handleDeleteCode = async (code: string) => {
     setDeletingCode(code)
@@ -177,45 +173,37 @@ export function RagAssistant() {
     }
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────────
-
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-background">
-
-      {/* ── Ingest panel ── */}
-      <div className="border-b border-border bg-card shrink-0">
+    <div className="flex h-full flex-col overflow-hidden bg-background">
+      {/* Codebook management panel */}
+      <div className="shrink-0 border-b border-border bg-card">
         <button
           type="button"
           onClick={() => setIngestOpen((v) => !v)}
-          className="flex w-full items-center justify-between px-6 py-3 text-sm font-semibold text-foreground hover:bg-muted/30"
+          className="flex w-full items-center justify-between gap-3 px-5 py-3 text-sm transition-colors hover:bg-muted/40"
         >
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-              <BookOpen className="h-4 w-4" />
-            </div>
-            <span>Manage IS Codebooks</span>
-            <Badge variant="secondary" className="rounded-full px-2.5 py-0.5 text-xs font-mono">
+          <span className="flex items-center gap-2 font-medium text-foreground">
+            <BookOpen className="h-4 w-4 text-muted-foreground" />
+            Manage IS Codebooks
+            <Badge variant="secondary" className="font-mono text-xs">
               {indexedCodes.length} indexed
             </Badge>
-          </div>
-          {ingestOpen ? (
-            <ChevronUp className="h-4 w-4 text-muted-foreground" />
-          ) : (
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-          )}
+          </span>
+          <ChevronDown
+            className={`h-4 w-4 text-muted-foreground transition-transform ${ingestOpen ? 'rotate-180' : ''}`}
+          />
         </button>
 
         {ingestOpen && (
-          <div className="px-6 pb-4 pt-1 space-y-4 border-t border-border bg-muted/10">
-            {/* Upload row */}
-            <div className="flex flex-wrap items-center gap-3 pt-2">
+          <div className="space-y-4 border-t border-border px-5 py-4">
+            <div className="flex flex-wrap items-center gap-3">
               <label
                 htmlFor="pdf-upload"
-                className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-border bg-background px-4 py-2 text-sm text-foreground hover:border-primary"
+                className="flex cursor-pointer items-center gap-2 rounded-md border border-dashed border-border bg-background px-3 py-2 text-sm text-foreground transition-colors hover:border-primary/50"
               >
-                <Upload className="h-4 w-4 text-primary" />
+                <Upload className="h-4 w-4 text-muted-foreground" />
                 <span className="font-medium">
-                  {ingestFile ? ingestFile.name : 'Choose IS Codebook PDF…'}
+                  {ingestFile ? ingestFile.name : 'Choose IS codebook PDF'}
                 </span>
               </label>
               <input
@@ -229,13 +217,19 @@ export function RagAssistant() {
               <Button
                 size="sm"
                 disabled={!ingestFile || isIngesting}
-                onClick={handleIngest}
-                className="rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
+                onClick={() => void handleIngest()}
+                className="rounded-md"
               >
                 {isIngesting ? (
-                  <><Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />Indexing PDF…</>
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Indexing
+                  </>
                 ) : (
-                  <><Upload className="h-3.5 w-3.5 mr-1.5" />Ingest &amp; Vectorize</>
+                  <>
+                    <Upload className="h-3.5 w-3.5" />
+                    Ingest
+                  </>
                 )}
               </Button>
               {ingestFile && !isIngesting && (
@@ -245,52 +239,48 @@ export function RagAssistant() {
                     setIngestFile(null)
                     if (fileInputRef.current) fileInputRef.current.value = ''
                   }}
-                  className="rounded-lg p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                  className="rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground"
                 >
                   <X className="h-4 w-4" />
                 </button>
               )}
             </div>
 
-            {/* Feedback */}
             {ingestResult && (
-              <div className="flex items-center gap-2 rounded-lg bg-emerald-500/10 px-3 py-2 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+              <div className="flex items-center gap-2 rounded-md bg-emerald-500/10 px-3 py-2 text-xs font-medium text-emerald-600 dark:text-emerald-400">
                 <CheckCircle2 className="h-4 w-4 shrink-0" />
                 {ingestResult.isDelete ? (
-                  <>Successfully purged <strong>{ingestResult.filename}</strong> &mdash; {ingestResult.chunks} chunks removed from knowledge base.</>
+                  <>Removed <strong>{ingestResult.filename}</strong>. {ingestResult.chunks} chunks purged.</>
                 ) : (
-                  <>Successfully indexed <strong>{ingestResult.filename}</strong> &mdash; {ingestResult.chunks} chunks vector embeddings added.</>
+                  <>Indexed <strong>{ingestResult.filename}</strong>. {ingestResult.chunks} chunks added.</>
                 )}
               </div>
             )}
             {ingestError && (
-              <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">
+              <div className="flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">
                 <AlertCircle className="h-4 w-4 shrink-0" />
                 {ingestError}
               </div>
             )}
 
-            {/* Indexed codes list */}
             {indexedCodes.length > 0 && (
-              <div className="pt-2 space-y-2">
-                <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
-                  <span>Active Indexed Standards</span>
-                  <span>Click trash to purge index</span>
-                </div>
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">
+                  Indexed standards
+                </p>
                 <div className="flex flex-wrap gap-2">
                   {indexedCodes.map((code) => (
                     <span
                       key={code}
-                      className="group flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1 text-xs font-mono font-semibold text-foreground"
+                      className="group flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1 text-xs font-mono font-medium text-foreground"
                     >
-                      <BookOpen className="h-3.5 w-3.5 text-primary" />
                       {code}
                       <button
                         type="button"
                         disabled={deletingCode === code}
                         onClick={() => void handleDeleteCode(code)}
-                        className="ml-1 rounded p-0.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
-                        title={`Purge ${code} from collection`}
+                        className="rounded p-0.5 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100 disabled:opacity-50"
+                        title={`Remove ${code}`}
                       >
                         {deletingCode === code ? (
                           <Loader2 className="h-3 w-3 animate-spin" />
@@ -307,54 +297,48 @@ export function RagAssistant() {
         )}
       </div>
 
-      {/* ── Chat area ── */}
-      <div className="flex-1 overflow-hidden relative">
+      {/* Chat area */}
+      <div className="relative flex-1 overflow-hidden">
         <ScrollArea ref={scrollAreaRef} className="h-full">
           <div className="space-y-6 p-6 pb-24">
             {messages.length === 0 ? (
-              <div className="mx-auto flex h-full min-h-[440px] max-w-2xl flex-col items-center justify-center text-center p-6 space-y-6">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                  <BookOpen className="h-6 w-6" />
-                </div>
-
-                <div className="space-y-2">
-                  <h2 className="font-heading text-2xl font-bold tracking-tight text-foreground">
-                    BIS Standards Citation Assistant
+              <div className="mx-auto flex min-h-[60vh] max-w-2xl flex-col items-center justify-center gap-8 px-6 py-8 text-center">
+                <div className="space-y-3">
+                  <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card">
+                    <BookOpen className="h-5 w-5 text-primary" />
+                  </div>
+                  <h2 className="font-heading text-xl font-semibold tracking-tight text-foreground">
+                    BIS Standards Assistant
                   </h2>
-                  <p className="max-w-md text-sm text-muted-foreground leading-relaxed">
-                    Ask technical standards questions on Indian Standard (IS) codes. Get exact clause, section, and page level citations backed by vector search.
+                  <p className="mx-auto max-w-md text-sm leading-relaxed text-muted-foreground">
+                    Ask questions about Indian Standard (IS) codes and get answers with exact clause, section, and page citations from indexed documents.
                   </p>
                 </div>
 
                 {indexedCodes.length === 0 ? (
-                  <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-600 dark:text-amber-400 max-w-md flex items-center gap-2">
-                    <AlertCircle className="h-4 w-4 shrink-0" />
-                    <span>No IS codebooks indexed yet. Click "Manage IS Codebooks" above to upload PDF documents.</span>
+                  <div className="flex items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                    <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                    No codebooks indexed. Upload a PDF from Manage IS Codebooks above.
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 font-medium bg-emerald-500/10 px-3 py-1.5 rounded-full">
+                  <div className="flex items-center gap-2 text-xs font-medium text-emerald-600 dark:text-emerald-400">
                     <CheckCircle2 className="h-3.5 w-3.5" />
-                    Ready &mdash; {indexedCodes.length} IS standard codebooks indexed
+                    {indexedCodes.length} codebooks indexed and ready
                   </div>
                 )}
 
-                <div className="w-full pt-2">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-3">
-                    Suggested Standard Queries
-                  </span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-left">
-                    {samplePrompts.map((prompt, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => handlePromptClick(prompt)}
-                        className="group flex items-start gap-2.5 rounded-lg border border-border bg-card p-3 text-xs text-foreground/90 hover:bg-muted/50"
-                      >
-                        <FileText className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                        <span className="font-medium leading-snug">{prompt}</span>
-                      </button>
-                    ))}
-                  </div>
+                <div className="w-full space-y-2">
+                  {samplePrompts.map((prompt) => (
+                    <button
+                      key={prompt}
+                      type="button"
+                      onClick={() => handlePromptClick(prompt)}
+                      className="flex w-full items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3 text-left text-sm text-foreground transition-colors hover:border-primary/40 hover:bg-muted/50"
+                    >
+                      <span className="font-medium">{prompt}</span>
+                      <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    </button>
+                  ))}
                 </div>
               </div>
             ) : (
@@ -370,36 +354,32 @@ export function RagAssistant() {
             )}
 
             {isLoading && (
-              <div className="mx-auto max-w-4xl px-4 py-3">
-                <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                  <span className="font-medium">Searching indexed vector chunks &amp; generating cited response</span>
-                  {selectedCode !== 'all' && (
-                    <Badge variant="secondary" className="text-xs font-mono ml-auto">
-                      Filter: {selectedCode}
-                    </Badge>
-                  )}
-                </div>
+              <div className="mx-auto flex max-w-4xl items-center gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Searching standard clauses</span>
+                {selectedCode !== 'all' && (
+                  <Badge variant="secondary" className="ml-auto font-mono text-xs">
+                    {selectedCode}
+                  </Badge>
+                )}
               </div>
             )}
           </div>
         </ScrollArea>
       </div>
 
-      {/* ── Input bar ── */}
-      <div className="border-t border-border bg-card p-4 shrink-0">
-        <div className="mx-auto max-w-4xl space-y-2.5">
-          {/* Controls bar */}
+      {/* Input bar */}
+      <div className="shrink-0 border-t border-border bg-card p-4">
+        <div className="mx-auto max-w-4xl space-y-3">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <Filter className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Filter Standard:</span>
+              <span className="text-xs font-medium text-muted-foreground">Standard</span>
               <Select value={selectedCode} onValueChange={(v) => setSelectedCode(v as string)}>
-                <SelectTrigger className="h-8 w-[170px] text-xs font-mono rounded-xl bg-background border-border">
+                <SelectTrigger className="h-8 w-[200px] rounded-md border-border bg-background font-mono text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Standards ({indexedCodes.length})</SelectItem>
+                  <SelectItem value="all">All standards ({indexedCodes.length})</SelectItem>
                   {indexedCodes.map((code) => (
                     <SelectItem key={code} value={code} className="font-mono text-xs">
                       {code}
@@ -415,41 +395,39 @@ export function RagAssistant() {
                 size="sm"
                 onClick={() => setDrawerOpen(true)}
                 disabled={latestChunks.length === 0}
-                className="h-8 text-xs gap-1.5 rounded-lg border-border text-foreground hover:bg-muted"
+                className="rounded-md"
               >
-                <ExternalLink className="h-3.5 w-3.5" />
-                Source Chunks ({latestChunks.length})
+                <Layers className="h-3.5 w-3.5" />
+                Sources ({latestChunks.length})
               </Button>
             )}
           </div>
 
-          {/* Textarea + Send button */}
-          <div className="flex items-end gap-2.5">
-            <div className="relative flex-1">
-              <Textarea
-                ref={textAreaRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={
-                  selectedCode !== 'all'
-                    ? `Ask technical question on ${selectedCode}… (Press Enter to send)`
-                    : 'Ask technical question on IS standards… (Press Enter to send)'
-                }
-                className="min-h-[50px] max-h-36 resize-none rounded-lg border-border bg-background px-4 py-3 text-sm focus-visible:ring-primary/40"
-                rows={1}
-                disabled={isLoading}
-              />
-            </div>
+          <div className="flex items-end gap-2">
+            <Textarea
+              ref={textAreaRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={
+                selectedCode !== 'all'
+                  ? `Ask a question on ${selectedCode}`
+                  : 'Ask a question on IS standards'
+              }
+              className="max-h-36 min-h-[48px] resize-none rounded-lg border-border bg-background px-4 py-3 text-sm"
+              rows={1}
+              disabled={isLoading}
+            />
             <Button
               onClick={() => void handleSubmit()}
               disabled={!input.trim() || isLoading}
-              className="h-[50px] px-5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 shrink-0"
+              size="icon-lg"
+              className="shrink-0 rounded-lg"
             >
               {isLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <Send className="h-5 w-5" />
+                <Send className="h-4 w-4" />
               )}
             </Button>
           </div>

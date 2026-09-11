@@ -1,5 +1,4 @@
 import { Badge } from '@/components/ui/badge'
-import { Bookmark } from 'lucide-react'
 import type { Citation } from '@/types'
 
 interface CitationBadgeProps {
@@ -17,15 +16,14 @@ export function CitationBadge({
     <Badge
       variant="outline"
       onClick={onClick}
-      className={`inline-flex items-center gap-1.5 cursor-pointer rounded-md border border-border bg-muted px-2.5 py-1 text-xs font-mono font-semibold text-foreground hover:bg-muted/80 ${className}`}
-      title={`IS Code: ${citation.is_code}, Clause: ${citation.clause}, Page: ${citation.page}`}
+      className={`inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border bg-muted/60 px-2 py-0.5 font-mono text-[11px] font-medium text-foreground transition-colors hover:bg-muted ${className}`}
+      title={`${citation.is_code}, Clause ${citation.clause}, Page ${citation.page}`}
     >
-      <Bookmark className="h-3 w-3 text-primary/80" />
-      <span>{citation.is_code}</span>
-      <span className="opacity-40">|</span>
-      <span>Cl. {citation.clause}</span>
-      <span className="opacity-40">|</span>
-      <span className="opacity-80">Pg {citation.page}</span>
+      {citation.is_code}
+      <span className="text-muted-foreground/50">|</span>
+      Cl. {citation.clause}
+      <span className="text-muted-foreground/50">|</span>
+      Pg {citation.page}
     </Badge>
   )
 }
