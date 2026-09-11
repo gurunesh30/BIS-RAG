@@ -39,7 +39,7 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 ingestion_engine = PDFIngestionEngine()
 vector_store = VectorStore()
 synthesizer = CitationSynthesizer(
-    openrouter_api_key=os.getenv("OPENROUTER_API_KEY"),
+    openrouter_api_key=os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENROUTER_API"),
     openrouter_model=os.getenv("OPENROUTER_MODEL", "openai/gpt-4o-mini")
 )
 graph_engine = KnowledgeGraphEngine(backup_path="./graph_backup.json")

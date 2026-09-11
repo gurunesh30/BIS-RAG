@@ -71,13 +71,22 @@ export function ProductForm() {
   )
 
   // ── Ghost-text: completion for the top name-prefix match ─────────────────
+  // Ghost text: try productName prefix first, then isCode prefix
   const ghostSuggestion = useMemo(() => {
     const trimmed = searchTerm.trim()
     if (!trimmed) return ''
-    const match = catalog.find((item) =>
+
+    const byName = catalog.find((item) =>
       item.productName.toLowerCase().startsWith(trimmed.toLowerCase())
     )
-    return match ? match.productName.slice(searchTerm.length) : ''
+    if (byName) return byName.productName.slice(searchTerm.length)
+
+    const byCode = catalog.find((item) =>
+      item.isCode.toLowerCase().startsWith(trimmed.toLowerCase())
+    )
+    if (byCode) return byCode.isCode.slice(searchTerm.length)
+
+    return ''
   }, [searchTerm, catalog])
 
   // ── Top match for Enter / button click ───────────────────────────────────
@@ -159,9 +168,9 @@ export function ProductForm() {
       e.preventDefault()
       const fullText = searchTerm + ghostSuggestion
       handleSearchChange(fullText)
-      const match = catalog.find(
-        (p) => p.productName.toLowerCase() === fullText.toLowerCase()
-      )
+      const match =
+        catalog.find((p) => p.productName.toLowerCase() === fullText.toLowerCase()) ??
+        catalog.find((p) => p.isCode.toLowerCase() === fullText.toLowerCase())
       if (match) selectAndSearchProduct(match)
     } else if (e.key === 'Enter') {
       e.preventDefault()
@@ -212,7 +221,7 @@ export function ProductForm() {
                 )}
               </CardTitle>
               <CardDescription className="text-xs">
-                Type product name (e.g. LED Driver, Solar Module, Cement, TMT Steel, PVC Cable, Battery, Helmet...)
+                Type a product name or IS Code number (e.g. IS 1786, LED Driver, Solar Module, PVC Cable...)
               </CardDescription>
             </CardHeader>
 
@@ -224,7 +233,7 @@ export function ProductForm() {
                   aria-hidden="true"
                 >
                   <span className="opacity-0">{searchTerm}</span>
-                  <span className="text-muted-foreground/40 dark:text-muted-foreground/50 select-none">
+                  <span className="text-muted-foreground/25 dark:text-muted-foreground/30 select-none">
                     {ghostSuggestion}
                   </span>
                 </div>
@@ -233,7 +242,7 @@ export function ProductForm() {
                 <Input
                   ref={inputRef}
                   type="text"
-                  placeholder="Search product (e.g., LED Driver, Solar PV Module, TMT Steel Bar...)"
+                  placeholder="Search by product name or IS Code (e.g., LED Driver, IS 1786, Solar PV Module...)"
                   value={searchTerm}
                   onChange={(e) => handleSearchChange(e.target.value)}
                   onKeyDown={handleKeyDown}

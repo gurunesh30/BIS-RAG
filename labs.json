@@ -1,0 +1,42 @@
+[
+  {
+    "id": "LAB-PLI-001",
+    "name": "Microbiological Laboratory - Pollachi Branch",
+    "address": "No 34/4, Kamaraj Road, Mahalingapuram, Pollachi, TN 642002",
+    "latitude": 10.6631,
+    "longitude": 77.0115,
+    "categories": ["Water Testing", "Food Safety", "Microbiology"],
+    "standards": ["IS 10500", "IS 14543"],
+    "phone": "+91 4259220859"
+  },
+  {
+    "id": "LAB-PLI-002",
+    "name": "Bioline Testing Services",
+    "address": "G R Towers, New Scheme Road, Pollachi Bazaar, Pollachi, TN 642001",
+    "latitude": 10.6594,
+    "longitude": 77.0078,
+    "categories": ["Chemical Analysis", "Bio-Testing"],
+    "standards": ["IS 10500"],
+    "phone": "+91 9944904004"
+  },
+  {
+    "id": "LAB-PLI-003",
+    "name": "Sri Vishnu Analytical Lab",
+    "address": "Balagopalapuram Street, Pollachi, TN 642001",
+    "latitude": 10.6568,
+    "longitude": 77.0041,
+    "categories": ["Agricultural Testing", "Quality Control"],
+    "standards": ["ISO 9001"],
+    "phone": "+91 9865035640"
+  },
+  {
+    "id": "LAB-CBE-001",
+    "name": "SITARC Industrial & BIS Electrical Testing Lab",
+    "address": "83 & 84 Avarampalayam Road, KR Puram, Coimbatore, TN 641006",
+    "latitude": 11.0211,
+    "longitude": 76.9892,
+    "categories": ["Electrical Pumps", "Motors", "BIS Certified Heavy Testing"],
+    "standards": ["IS 9079", "IS 12615", "IS 14220"],
+    "phone": "+91 4222562612"
+  }
+]

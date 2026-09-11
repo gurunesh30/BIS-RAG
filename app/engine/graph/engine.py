@@ -17,6 +17,109 @@ class KnowledgeGraphEngine:
         self.graph = nx.DiGraph()
         self.backup_path = backup_path
         self._load_backup()
+        self._seed_demo_graph()
+
+    def _seed_demo_graph(self) -> None:
+        """Populate a realistic BIS supply-chain graph if the graph is empty."""
+        if self.graph.number_of_nodes() > 0:
+            return
+
+        # ── Nodes ──────────────────────────────────────────────────────
+        nodes = [
+            NodeData(id="CM/L-1234567", type=NodeType.LICENSE, attributes={
+                "status": LicenseStatus.ACTIVE,
+                "expiry_date": "2028-06-30",
+                "name": "CM/L-1234567"
+            }),
+            NodeData(id="CM/L-9999999", type=NodeType.LICENSE, attributes={
+                "status": LicenseStatus.EXPIRED,
+                "expiry_date": "2024-01-15",
+                "name": "CM/L-9999999 (Expired)"
+            }),
+            NodeData(id="MFG-Apex", type=NodeType.MANUFACTURER, attributes={
+                "name": "Apex Electronics Pvt Ltd",
+                "factory_registration_active": True,
+                "factory_address": "Plot 42, Electronics Complex, Gurugram"
+            }),
+            NodeData(id="MFG-SunPower", type=NodeType.MANUFACTURER, attributes={
+                "name": "SunPower Manufacturing India Ltd",
+                "factory_registration_active": True,
+                "factory_address": "Industrial Zone Phase III, Ahmedabad"
+            }),
+            NodeData(id="MFG-UltraTech", type=NodeType.MANUFACTURER, attributes={
+                "name": "UltraTech Cement Works Unit 4",
+                "factory_registration_active": True,
+                "factory_address": "Cement Nagar, Chandrapur, Maharashtra"
+            }),
+            NodeData(id="IS 13252", type=NodeType.INDIAN_STANDARD, attributes={
+                "name": "IS 13252 – IT Equipment Safety",
+                "active": True
+            }),
+            NodeData(id="IS 14286", type=NodeType.INDIAN_STANDARD, attributes={
+                "name": "IS 14286 – Solar PV Modules",
+                "active": True
+            }),
+            NodeData(id="IS 1489", type=NodeType.INDIAN_STANDARD, attributes={
+                "name": "IS 1489 – Portland Pozzolana Cement",
+                "active": True
+            }),
+            NodeData(id="IS 456", type=NodeType.INDIAN_STANDARD, attributes={
+                "name": "IS 456 – Plain & Reinforced Concrete",
+                "active": True
+            }),
+            NodeData(id="LAB-NABL-01", type=NodeType.TEST_LAB, attributes={
+                "name": "Central Electronics Testing Lab",
+                "lab_accreditation": LabAccreditation.VALID
+            }),
+            NodeData(id="LAB-SOLAR-09", type=NodeType.TEST_LAB, attributes={
+                "name": "National Solar Testing Institute",
+                "lab_accreditation": LabAccreditation.VALID
+            }),
+            NodeData(id="LAB-MAT-04", type=NodeType.TEST_LAB, attributes={
+                "name": "NABL Civil Materials Lab",
+                "lab_accreditation": LabAccreditation.INVALID
+            }),
+            NodeData(id="PROD-LED-50W", type=NodeType.PRODUCT, attributes={
+                "name": "Smart Modular LED Driver 50W"
+            }),
+            NodeData(id="PROD-SOLAR-400W", type=NodeType.PRODUCT, attributes={
+                "name": "Mono PERC Solar PV Module 400W"
+            }),
+            NodeData(id="PROD-CEMENT-PPC", type=NodeType.PRODUCT, attributes={
+                "name": "Portland Pozzolana Cement Grade 53"
+            }),
+        ]
+
+        for nd in nodes:
+            self.add_node(nd)
+
+        # ── Edges ──────────────────────────────────────────────────────
+        edges = [
+            # License → Manufacturer (ISSUED_TO)
+            EdgeData(source="CM/L-1234567", target="MFG-Apex",       type=EdgeType.ISSUED_TO),
+            EdgeData(source="CM/L-1234567", target="MFG-SunPower",   type=EdgeType.ISSUED_TO),
+            EdgeData(source="CM/L-9999999", target="MFG-UltraTech",  type=EdgeType.ISSUED_TO),
+
+            # Product → License (COVERS)
+            EdgeData(source="PROD-LED-50W",     target="CM/L-1234567", type=EdgeType.COVERS),
+            EdgeData(source="PROD-SOLAR-400W",  target="CM/L-1234567", type=EdgeType.COVERS),
+            EdgeData(source="PROD-CEMENT-PPC",  target="CM/L-9999999", type=EdgeType.COVERS),
+
+            # Product → Standard (CONFORMS_TO)
+            EdgeData(source="PROD-LED-50W",     target="IS 13252", type=EdgeType.CONFORMS_TO),
+            EdgeData(source="PROD-SOLAR-400W",  target="IS 14286", type=EdgeType.CONFORMS_TO),
+            EdgeData(source="PROD-CEMENT-PPC",  target="IS 1489",  type=EdgeType.CONFORMS_TO),
+            EdgeData(source="PROD-CEMENT-PPC",  target="IS 456",   type=EdgeType.CONFORMS_TO),
+
+            # Product → TestLab (TESTED_BY)
+            EdgeData(source="PROD-LED-50W",     target="LAB-NABL-01",  type=EdgeType.TESTED_BY),
+            EdgeData(source="PROD-SOLAR-400W",  target="LAB-SOLAR-09", type=EdgeType.TESTED_BY),
+            EdgeData(source="PROD-CEMENT-PPC",  target="LAB-MAT-04",   type=EdgeType.TESTED_BY),
+        ]
+
+        for ed in edges:
+            self.add_edge(ed)
+
 
     def _load_backup(self) -> None:
         if os.path.exists(self.backup_path):
