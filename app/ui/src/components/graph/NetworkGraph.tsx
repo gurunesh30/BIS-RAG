@@ -130,7 +130,7 @@ export default function NetworkGraph({ graphData, verificationResult }: NetworkG
       })
       .linkLabel((link: object) => {
         const l = link as GraphLink
-        return `${l.relation || 'Connected'} — ${l.status || ''}`
+        return [l.relation || 'Connected', l.status].filter(Boolean).join(' ')
       })
       .linkDirectionalArrowLength(4)
       .linkCurvature(0.1)
