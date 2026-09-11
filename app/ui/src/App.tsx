@@ -7,29 +7,28 @@ import { RagAssistant } from '@/components/rag/RagAssistant'
 import { GraphVerifier } from '@/components/graph/GraphVerifier'
 import { ProductForm } from '@/components/product/ProductForm'
 import { LabFinder } from '@/components/labs/LabFinder'
-import { Shield, Activity, Menu, X, Cpu } from 'lucide-react'
+import { Shield, Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   return (
-    <div className="min-h-svh bg-background text-foreground flex flex-col md:flex-row overflow-hidden">
-      <Tabs defaultValue="rag" orientation="vertical" className="flex flex-1 flex-col md:flex-row w-full h-svh overflow-hidden">
-        
-        {/* Mobile Header */}
-        <header className="md:hidden flex items-center justify-between border-b border-border bg-sidebar px-4 py-3 shrink-0 z-30">
+    <div className="flex min-h-svh flex-col overflow-hidden bg-background text-foreground md:flex-row">
+      <Tabs
+        defaultValue="rag"
+        orientation="vertical"
+        className="flex h-svh w-full flex-1 flex-col overflow-hidden md:flex-row"
+      >
+        {/* Mobile header */}
+        <header className="z-30 flex shrink-0 items-center justify-between border-b border-sidebar-border bg-sidebar px-4 py-3 md:hidden">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <Shield className="h-5 w-5" />
             </div>
-            <div>
-              <h1 className="font-heading text-sm font-bold tracking-tight text-sidebar-foreground">
-                BIS Suite
-              </h1>
-              <p className="text-[10px] text-muted-foreground font-mono">
-                SIH26107 Engine
-              </p>
+            <div className="flex flex-col leading-tight">
+              <p className="text-sm font-semibold text-sidebar-foreground">BIS Verification Suite</p>
+              <p className="text-xs text-muted-foreground">Standards · Licenses · Testing</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -37,7 +36,7 @@ function App() {
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 rounded-lg"
+              className="rounded-lg"
               onClick={() => setMobileMenuOpen((v) => !v)}
             >
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -45,67 +44,51 @@ function App() {
           </div>
         </header>
 
-        {/* Vertical Left Navigation Sidebar */}
+        {/* Sidebar */}
         <aside
-          className={`fixed inset-y-0 left-0 z-40 w-72 flex-col justify-between border-r border-sidebar-border bg-sidebar md:static md:translate-x-0 flex shrink-0 ${
-            mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+          className={`fixed inset-y-0 left-0 z-40 flex w-64 shrink-0 -translate-x-full flex-col border-r border-sidebar-border bg-sidebar transition-transform duration-200 md:static md:translate-x-0 ${
+            mobileMenuOpen ? 'translate-x-0' : ''
           }`}
         >
-          <div className="flex flex-col gap-6 p-5">
-            {/* Branding Header */}
-            <div className="flex items-center gap-3 pb-2 border-b border-border">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <Shield className="h-5 w-5" />
-              </div>
-              <div className="flex flex-col">
-                <div className="flex items-center gap-1.5">
-                  <h1 className="font-heading text-base font-bold tracking-tight text-sidebar-foreground">
-                    BIS RAG Suite
-                  </h1>
-                </div>
-                <p className="text-[11px] font-medium text-muted-foreground">
-                  SIH26107 &bull; Citation &amp; License
-                </p>
-              </div>
+          {/* Brand */}
+          <div className="flex items-center gap-3 px-5 pb-4 pt-5">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <Shield className="h-5 w-5" />
             </div>
-
-            {/* Navigation Tabs Header Label */}
-            <div className="space-y-2">
-              <span className="text-[10px] font-bold tracking-wider text-muted-foreground/70 uppercase px-1">
-                Navigation Modules
-              </span>
-              <TabNavigation />
-            </div>
-
-            {/* System Info Box */}
-            <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-                  <Cpu className="h-3.5 w-3.5 text-muted-foreground" />
-                  Engine Status
-                </span>
-                <span className="flex items-center gap-1 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                  <Activity className="h-3 w-3" /> Active
-                </span>
-              </div>
-              <p className="text-[11px] text-muted-foreground leading-relaxed">
-                BIS Standard RAG &amp; License verification engine running with vector search &amp; graph verification.
+            <div className="flex flex-col leading-tight">
+              <p className="font-heading text-sm font-semibold tracking-tight text-sidebar-foreground">
+                BIS Verification Suite
               </p>
+              <p className="text-xs text-muted-foreground">Standards · Licenses · Testing</p>
             </div>
           </div>
 
-          {/* Sidebar Footer */}
-          <div className="p-4 border-t border-border flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          {/* Navigation */}
+          <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-2">
+            <div className="space-y-1.5">
+              <p className="px-3 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                Workspace
+              </p>
+              <TabNavigation />
+            </div>
+          </nav>
+
+          {/* Footer */}
+          <div className="border-t border-sidebar-border p-3">
+            <div className="flex items-center justify-between rounded-md px-2 py-1.5">
+              <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
+                Engine online
+              </span>
+              <span className="font-mono text-[11px] text-muted-foreground/60">v1.2.0</span>
+            </div>
+            <div className="mt-1 px-2">
               <ThemeToggle showLabel />
             </div>
-            <span className="text-[10px] font-mono text-muted-foreground/70">
-              v1.2.0
-            </span>
           </div>
         </aside>
 
-        {/* Overlay backdrop for mobile menu */}
+        {/* Mobile backdrop */}
         {mobileMenuOpen && (
           <div
             className="fixed inset-0 z-30 bg-background/80 md:hidden"
@@ -113,23 +96,35 @@ function App() {
           />
         )}
 
-        {/* Main Content Workspace (Right Column) */}
-        <main className="flex-1 flex flex-col h-full overflow-hidden bg-background">
+        {/* Main content */}
+        <main className="flex h-full flex-1 flex-col overflow-hidden bg-background">
           <HeaderStatsBar />
-          
-          <TabsContent value="rag" className="flex-1 border-none p-0 h-full overflow-hidden focus-visible:outline-none">
+
+          <TabsContent
+            value="rag"
+            className="h-full flex-1 overflow-hidden border-none p-0 outline-none focus-visible:outline-none"
+          >
             <RagAssistant />
           </TabsContent>
 
-          <TabsContent value="graph" className="flex-1 border-none p-0 h-full overflow-hidden focus-visible:outline-none">
+          <TabsContent
+            value="graph"
+            className="h-full flex-1 overflow-hidden border-none p-0 outline-none focus-visible:outline-none"
+          >
             <GraphVerifier />
           </TabsContent>
 
-          <TabsContent value="product" className="flex-1 border-none p-0 h-full overflow-hidden focus-visible:outline-none">
+          <TabsContent
+            value="product"
+            className="h-full flex-1 overflow-hidden border-none p-0 outline-none focus-visible:outline-none"
+          >
             <ProductForm />
           </TabsContent>
 
-          <TabsContent value="labs" className="flex-1 border-none p-0 h-full overflow-hidden focus-visible:outline-none">
+          <TabsContent
+            value="labs"
+            className="h-full flex-1 overflow-hidden border-none p-0 outline-none focus-visible:outline-none"
+          >
             <LabFinder />
           </TabsContent>
         </main>
@@ -139,4 +134,3 @@ function App() {
 }
 
 export default App
-
