@@ -21,7 +21,7 @@ class SynthesisResult:
 
 
 class CitationSynthesizer:
-    def __init__(self, openrouter_api_key: Optional[str] = None, openrouter_model: str = "openai/gpt-4o-mini"):
+    def __init__(self, openrouter_api_key: Optional[str] = None, openrouter_model: str = "qwen/qwen3-8b"):
         self.openrouter_api_key = openrouter_api_key
         self.openrouter_model = openrouter_model
 

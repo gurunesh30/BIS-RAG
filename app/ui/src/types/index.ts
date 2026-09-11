@@ -1,3 +1,18 @@
+export interface Lab {
+  id: string
+  name: string
+  address: string
+  latitude: number
+  longitude: number
+  categories: string[]
+  standards: string[]
+  phone: string
+}
+
+export interface LabWithDistance extends Lab {
+  distanceKm: number
+}
+
 export interface BISProductEntry {
   productName: string
   isCode: string
