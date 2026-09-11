@@ -71,9 +71,27 @@ class VectorStore:
 
     def query(self, query_text: str, n_results: int = 5, is_code_filter: Optional[str] = None) -> Dict[str, Any]:
         where_filter = None
-        if is_code_filter:
-            target_codes = list({is_code_filter, is_code_filter.upper(), is_code_filter.lower()})
-            where_filter = {"is_code": {"$in": target_codes}}
+        all_codes = self.get_all_codes()
+
+        if is_code_filter and is_code_filter.lower() != 'all':
+            clean_code = is_code_filter.strip()
+            # Normalize target code patterns: "IS 456", "IS456", "456"
+            matched_code = None
+            for stored in all_codes:
+                if (
+                    stored.lower() == clean_code.lower() or
+                    stored.replace(" ", "").lower() == clean_code.replace(" ", "").lower() or
+                    clean_code.lower() in stored.lower() or
+                    stored.lower() in clean_code.lower()
+                ):
+                    matched_code = stored
+                    break
+
+            if matched_code:
+                where_filter = {"is_code": matched_code}
+            else:
+                # If requested IS code is not present in vector database, return empty with metadata
+                return {"results": [], "requested_code": is_code_filter, "indexed_codes": all_codes}
 
         results = self._collection.query(
             query_texts=[query_text],
@@ -91,9 +109,13 @@ class VectorStore:
                 formatted.append({
                     "text": doc,
                     "metadata": meta,
-                    "score": 1 - dist
+                    "score": round(1 - dist, 4)
                 })
-        return {"results": formatted}
+
+        # Sort by relevance score descending
+        formatted.sort(key=lambda x: x["score"], reverse=True)
+        return {"results": formatted, "indexed_codes": all_codes}
+
 
     def count(self) -> int:
         return self._collection.count()

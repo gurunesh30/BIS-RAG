@@ -191,23 +191,73 @@ Context Sources:
             return self._synthesize_fallback(query, contexts)
 
     def _synthesize_fallback(self, query: str, contexts: List[Dict[str, Any]]) -> SynthesisResult:
-        top_ctx = contexts[0]
-        meta = top_ctx.get("metadata", {})
-        clause = meta.get("clause_num", "N/A")
-        is_code = meta.get("is_code", "N/A")
-        page = meta.get("page_num", "N/A")
+        # 1. Extract explicit IS code mentioned in query (e.g. IS 1786, IS 13252)
+        match_is = re.search(r'\bIS\s*(\d+)\b', query, re.IGNORECASE)
+        requested_code_num = match_is.group(1) if match_is else None
 
-        text_snippet = top_ctx.get('text', '').strip()
-        answer = f"{text_snippet} [{is_code} | Clause {clause} | Page {page}]"
+        # 2. Check if retrieved chunks match the requested IS code or have high similarity
+        valid_chunks = []
+        stop_words = {'what', 'is', 'the', 'are', 'for', 'in', 'of', 'and', 'to', 'a', 'an', 'under', 'specified', 'requirements', 'mandatory', 'code', 'standard'}
+        query_words = set(re.findall(r'\w+', query.lower())) - stop_words
+
+        for ctx in contexts:
+            meta = ctx.get('metadata', {})
+            chunk_code = str(meta.get('is_code', '')).upper()
+            chunk_text = ctx.get('text', '')
+            score = float(ctx.get('score', 0.5))
+
+            # Count keyword overlap
+            chunk_words = set(re.findall(r'\w+', chunk_text.lower()))
+            overlap = len(query_words & chunk_words)
+
+            # Boost score if keywords overlap or code matches
+            if requested_code_num and requested_code_num in chunk_code:
+                overlap += 3
+
+            valid_chunks.append((overlap, score, ctx))
+
+        # Sort by overlap descending, then score descending
+        valid_chunks.sort(key=lambda x: (x[0], x[1]), reverse=True)
+
+        best_overlap, best_score, best_ctx = valid_chunks[0]
+        best_meta = best_ctx.get('metadata', {})
+        best_is_code = best_meta.get('is_code', 'N/A')
+
+        # If requested code does not match retrieved chunk code
+        if requested_code_num and requested_code_num not in best_is_code:
+            answer = (
+                f"The requested standard (IS {requested_code_num}) is not currently indexed in the vector database. "
+                f"The database currently contains indexed codebook: {best_is_code}. "
+                f"Please upload the PDF document for IS {requested_code_num} to search its clauses."
+            )
+            return SynthesisResult(answer=answer, citations=[])
+
+        # If overlap is 0 and score is poor, return no relevant match
+        if best_overlap == 0 and best_score < 0.2:
+            answer = (
+                f"No relevant clauses found in {best_is_code} matching '{query}'. "
+                "Please verify the question or upload the specific IS Codebook PDF."
+            )
+            return SynthesisResult(answer=answer, citations=[])
+
+        # Format clean response from best matching chunk
+        clause = best_meta.get('clause_num', 'N/A')
+        page = best_meta.get('page_num', 'N/A')
+        table_ref = best_meta.get('table_ref', 'N/A')
+        text_snippet = best_ctx.get('text', '').strip()
+
+        # Clean snippet text for presentation
+        answer = f"{text_snippet}\n\n[{best_is_code} | Clause {clause} | Page {page}]"
 
         citations = [
             Citation(
-                is_code=meta.get("is_code", is_code),
-                clause_num=meta.get("clause_num", clause),
-                page_num=meta.get("page_num", page),
-                table_ref=meta.get("table_ref", "N/A"),
+                is_code=best_is_code,
+                clause_num=clause,
+                page_num=int(page) if str(page).isdigit() else 0,
+                table_ref=table_ref,
                 text=text_snippet[:500]
             )
         ]
 
         return SynthesisResult(answer=answer, citations=citations)
+
