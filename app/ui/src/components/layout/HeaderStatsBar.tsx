@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react'
-import { Badge } from '@/components/ui/badge'
-import { Database, Network, Cpu, CheckCircle2 } from 'lucide-react'
+import { Cpu } from 'lucide-react'
 import { listIsCodes, exportGraph } from '@/lib/api'
 
 export function HeaderStatsBar() {
-  const [codesCount, setCodesCount] = useState<number>(0)
-  const [nodesCount, setNodesCount] = useState<number>(0)
+  const [codesCount, setCodesCount] = useState<number | null>(null)
+  const [nodesCount, setNodesCount] = useState<number | null>(null)
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -13,52 +12,50 @@ export function HeaderStatsBar() {
         const codes = await listIsCodes()
         setCodesCount(codes.length)
       } catch {
-        // silently fallback
+        setCodesCount(null)
       }
       try {
         const graph = await exportGraph()
         setNodesCount(graph.nodes.length)
       } catch {
-        // fallback
+        setNodesCount(null)
       }
     }
     void fetchStats()
   }, [])
 
   return (
-    <div className="hidden lg:flex items-center justify-between border-b border-border bg-sidebar/50 px-6 py-2 text-xs shrink-0 z-10">
-      {/* Left side: System status pills */}
-      <div className="flex items-center gap-3">
-        <span className="flex items-center gap-1.5 font-semibold text-foreground">
-          <Cpu className="h-3.5 w-3.5 text-primary" />
+    <div className="hidden shrink-0 items-center justify-between border-b border-border bg-sidebar/50 px-6 py-2 text-xs lg:flex">
+      <div className="flex items-center gap-4">
+        <span className="flex items-center gap-1.5 font-medium text-foreground">
+          <Cpu className="h-3.5 w-3.5 text-muted-foreground" />
           BIS Verification Suite
         </span>
 
-        <div className="h-3 w-px bg-border" />
+        <span className="h-3 w-px bg-border" aria-hidden="true" />
 
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="gap-1 bg-background text-[11px] font-medium border-border">
-            <Database className="h-3 w-3 text-indigo-500" />
-            <span className="text-muted-foreground">Indexed Standards:</span>
-            <span className="font-bold text-foreground font-mono">{codesCount}</span>
-          </Badge>
+        <span className="text-muted-foreground">
+          <span className="font-semibold text-foreground">
+            {codesCount ?? '—'}
+          </span>{' '}
+          indexed standards
+        </span>
 
-          <Badge variant="outline" className="gap-1 bg-background text-[11px] font-medium border-border">
-            <Network className="h-3 w-3 text-teal-500" />
-            <span className="text-muted-foreground">Graph Nodes:</span>
-            <span className="font-bold text-foreground font-mono">{nodesCount}</span>
-          </Badge>
-        </div>
+        <span className="text-muted-foreground">
+          <span className="font-semibold text-foreground">
+            {nodesCount ?? '—'}
+          </span>{' '}
+          graph nodes
+        </span>
       </div>
 
-      {/* Right side: Model & engine pills */}
-      <div className="flex items-center gap-2.5">
-        <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[11px] font-medium gap-1">
-          <CheckCircle2 className="h-3 w-3" />
-          Engine API Operational
-        </Badge>
-        <span className="text-[11px] font-mono text-muted-foreground">
-          Vector: ChromaDB &bull; BFS Graph
+      <div className="flex items-center gap-4">
+        <span className="flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
+          API operational
+        </span>
+        <span className="font-mono text-[11px] text-muted-foreground/60">
+          ChromaDB · BFS Graph
         </span>
       </div>
     </div>
