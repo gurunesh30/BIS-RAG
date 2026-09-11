@@ -1,10 +1,12 @@
-import { useState, useRef, useMemo } from 'react'
+import { useState, useRef, useMemo, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { queryRag } from '@/lib/api'
+import { fetchProductCatalog, queryRag } from '@/lib/api'
+import { filterArray } from '@/lib/utils'
+import type { BISProductEntry } from '@/types'
 import {
   Search,
   BookOpen,
@@ -15,193 +17,79 @@ import {
   Tag,
   CornerDownLeft,
   ArrowRight,
-  Info
+  Info,
+  SearchX,
 } from 'lucide-react'
 
-export interface BISProductEntry {
-  productName: string
-  isCode: string
-  standardTitle: string
-  category: string
-  description: string
-  keyParameters: string[]
-}
-
-export const BIS_PRODUCT_CATALOG: BISProductEntry[] = [
-  {
-    productName: 'Smart LED Driver & Control Gear',
-    isCode: 'IS 15885 (Part 2/Sec 13) : 2012',
-    standardTitle: 'Lamp Controlgear - Particular Requirements for DC or AC Supplied Electronic Controlgear for LED Modules',
-    category: 'Electronics & Lighting',
-    description: 'Safety and performance requirements for electronic control gear used with LED lighting modules.',
-    keyParameters: ['Output Voltage Limits', 'Thermal Protection', 'Short Circuit & Overload Test', 'Insulation Resistance']
-  },
-  {
-    productName: 'Information Technology & Office Equipment',
-    isCode: 'IS 13252 (Part 1) : 2010',
-    standardTitle: 'Information Technology Equipment - Safety - Part 1: General Requirements',
-    category: 'IT & Consumer Electronics',
-    description: 'Safety standards for mains-powered or battery-powered information technology equipment including laptops, printers, and power adapters.',
-    keyParameters: ['Electric Shock Protection', 'Fire Enclosure Resistance', 'Dielectric Withstand Voltage', 'Clearance & Creepage Distances']
-  },
-  {
-    productName: 'Crystalline Silicon Solar PV Modules',
-    isCode: 'IS 14286 : 2010',
-    standardTitle: 'Crystalline Silicon Terrestrial Photovoltaic (PV) Modules - Design Qualification and Type Approval',
-    category: 'Renewable & Solar Energy',
-    description: 'Design qualification, testing parameters, and type approval for solar photovoltaic modules.',
-    keyParameters: ['Thermal Cycling Test', 'Damp Heat Stress', 'Mechanical Load Performance', 'Hail Impact Test']
-  },
-  {
-    productName: 'Portland Pozzolana Cement (PPC)',
-    isCode: 'IS 1489 (Part 1) : 2015',
-    standardTitle: 'Portland Pozzolana Cement Specification - Part 1: Fly Ash Based',
-    category: 'Civil & Building Materials',
-    description: 'Specification for fly-ash based Portland Pozzolana cement used for general structural construction.',
-    keyParameters: ['Fineness Specific Surface', 'Soundness Test (Le Chatelier)', 'Compressive Strength (7D/28D)', 'Initial & Final Setting Time']
-  },
-  {
-    productName: 'High Strength Deformed Steel Bars (TMT Bars)',
-    isCode: 'IS 1786 : 2008',
-    standardTitle: 'High Strength Deformed Steel Bars and Wires for Concrete Reinforcement',
-    category: 'Steel & Metallurgy',
-    description: 'Requirements for Thermo-Mechanically Treated (TMT) steel bars used in reinforced concrete structures.',
-    keyParameters: ['0.2% Proof Stress / Yield Strength', 'Tensile Strength / Yield Ratio', 'Elongation Percentage', 'Bend & Rebend Performance']
-  },
-  {
-    productName: 'PVC Insulated Electric Cables for Working Voltages up to 1100V',
-    isCode: 'IS 694 : 2010',
-    standardTitle: 'Polyvinyl Chloride Insulated Unsheathed and Sheathed Cables/Cords with Rigid and Flexible Conductors',
-    category: 'Electrical Wiring',
-    description: 'Safety and insulation testing for PVC cables used in building wiring and low-voltage applications.',
-    keyParameters: ['Conductor Resistance', 'Insulation Thickness', 'High Voltage Withstand Test', 'Flame Retardancy']
-  },
-  {
-    productName: 'Rechargeable Lithium-Ion Batteries for Portable Applications',
-    isCode: 'IS 16046 (Part 2) : 2018',
-    standardTitle: 'Secondary Cells and Batteries Containing Alkaline or Other Non-Acid Electrolytes - Safety Requirements (Lithium Systems)',
-    category: 'Batteries & Energy Storage',
-    description: 'Mandatory safety testing for lithium batteries used in mobile phones, power banks, and portable electronics.',
-    keyParameters: ['External Short Circuit Test', 'Overcharge Protection', 'Thermal Abuse Resistance', 'Drop & Impact Resistance']
-  },
-  {
-    productName: 'Industrial Safety Helmets',
-    isCode: 'IS 2925 : 1984',
-    standardTitle: 'Specification for Industrial Safety Helmets',
-    category: 'Personal Protective Equipment',
-    description: 'Requirements for head protection helmets used in construction, industrial sites, and mining.',
-    keyParameters: ['Shock Absorption Test', 'Penetration Resistance', 'Flammability Test', 'Electrical Insulation Test']
-  },
-  {
-    productName: 'Packaged Drinking Water (Other than Natural Mineral Water)',
-    isCode: 'IS 14543 : 2016',
-    standardTitle: 'Packaged Drinking Water (Other than Packaged Natural Mineral Water) - Specification',
-    category: 'Food & Beverages',
-    description: 'Purity, microbiological limits, and chemical safety requirements for commercial packaged drinking water.',
-    keyParameters: ['TDS & pH Range', 'Microbiological Contaminants', 'Heavy Metals Testing (Lead, Arsenic)', 'Pesticide Residue Limits']
-  },
-  {
-    productName: 'Switches for Domestic and Similar Fixed Electrical Installations',
-    isCode: 'IS 3854 : 1997',
-    standardTitle: 'Switches for Domestic and Similar Fixed Electrical Installations - Specification',
-    category: 'Electrical Accessories',
-    description: 'Safety and endurance requirements for wall switches used in home and office wiring.',
-    keyParameters: ['Make & Break Capacity', 'Normal Operation Endurance', 'Temperature Rise Test', 'Creepage Distance']
-  },
-  {
-    productName: 'Outdoor Type Oil Immersed Distribution Transformers',
-    isCode: 'IS 1180 (Part 1) : 2014',
-    standardTitle: 'Outdoor Type Oil Immersed Distribution Transformers Up to and Including 2500 kVA, 33 kV',
-    category: 'Power Equipment',
-    description: 'Energy efficiency ratings, losses, and safety standards for distribution transformers.',
-    keyParameters: ['Maximum Total Losses at 50% & 100% Load', 'Impulse Voltage Withstand', 'Short Circuit Test', 'Temperature Rise']
-  },
-  {
-    productName: 'Portable Fire Extinguishers',
-    isCode: 'IS 15683 : 2018',
-    standardTitle: 'Portable Fire Extinguishers - Performance and Construction - Specification',
-    category: 'Fire Safety & Protection',
-    description: 'Construction, hydraulic pressure tests, and fire rating performance for portable fire extinguishers.',
-    keyParameters: ['Fire Rating Test', 'Burst Pressure Test', 'Discharge Duration & Range', 'Corrosion Resistance']
-  },
-  {
-    productName: 'Medical Gloves for Single Use',
-    isCode: 'IS 4148 : 1989',
-    standardTitle: 'Specification for Surgical Rubber Gloves',
-    category: 'Medical Devices',
-    description: 'Sterility, freedom from holes, tensile strength, and elongation requirements for rubber surgical gloves.',
-    keyParameters: ['Tensile Strength & Elongation', 'Freedom from Holes (Water Leak Test)', 'Sterility Test', 'Dimensions & Thickness']
-  },
-  {
-    productName: 'Unplasticized PVC Pipes for Potable Water Supplies',
-    isCode: 'IS 4985 : 2021',
-    standardTitle: 'Unplasticized Polyvinyl Chloride (uPVC) Pipes for Potable Water Supplies - Specification',
-    category: 'Piping & Plumbing',
-    description: 'Hydrostatic pressure, impact resistance, and material safety for uPVC drinking water pipes.',
-    keyParameters: ['Internal Hydrostatic Pressure Test', 'Impact Resistance (TIR)', 'Opacity Percentage', 'Effect on Water Quality']
-  }
-]
+const DEBOUNCE_MS = 200
 
 export function ProductForm() {
+  // ── Full dataset (loaded once on mount) ─────────────────────────────────
+  const [catalog, setCatalog] = useState<BISProductEntry[]>([])
+  const [catalogLoading, setCatalogLoading] = useState(true)
+
+  // ── Search input & derived filtered results ──────────────────────────────
   const [searchTerm, setSearchTerm] = useState('')
+  const [debouncedQuery, setDebouncedQuery] = useState('')
+
+  // ── Product selection & RAG result ───────────────────────────────────────
   const [selectedProduct, setSelectedProduct] = useState<BISProductEntry | null>(null)
   const [searchingRag, setSearchingRag] = useState(false)
   const [ragResult, setRagResult] = useState<string | null>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
 
-  // Compute ghost text suggestion based on current typed search term
+  const inputRef = useRef<HTMLInputElement>(null)
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // ── Initial bulk fetch ───────────────────────────────────────────────────
+  useEffect(() => {
+    let cancelled = false
+    setCatalogLoading(true)
+    fetchProductCatalog()
+      .then((data) => { if (!cancelled) setCatalog(data) })
+      .catch(() => { if (!cancelled) setCatalog([]) })
+      .finally(() => { if (!cancelled) setCatalogLoading(false) })
+    return () => { cancelled = true }
+  }, [])
+
+  // ── Debounce search input → debouncedQuery ───────────────────────────────
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchTerm(value)
+    if (debounceTimer.current) clearTimeout(debounceTimer.current)
+    debounceTimer.current = setTimeout(() => {
+      setDebouncedQuery(value)
+    }, DEBOUNCE_MS)
+  }, [])
+
+  useEffect(() => () => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current)
+  }, [])
+
+  // ── Derived filtered results (memoised) ──────────────────────────────────
+  const filteredResults = useMemo(
+    () => filterArray(catalog, debouncedQuery),
+    [catalog, debouncedQuery]
+  )
+
+  // ── Ghost-text: completion for the top name-prefix match ─────────────────
   const ghostSuggestion = useMemo(() => {
     const trimmed = searchTerm.trim()
     if (!trimmed) return ''
-
-    const match = BIS_PRODUCT_CATALOG.find((item) =>
+    const match = catalog.find((item) =>
       item.productName.toLowerCase().startsWith(trimmed.toLowerCase())
     )
+    return match ? match.productName.slice(searchTerm.length) : ''
+  }, [searchTerm, catalog])
 
-    if (match) {
-      // Return the portion of the product name that completes the typed string
-      return match.productName.slice(searchTerm.length)
-    }
-    return ''
-  }, [searchTerm])
-
-  // Top matching product for current search term
+  // ── Top match for Enter / button click ───────────────────────────────────
   const topMatch = useMemo(() => {
-    const trimmed = searchTerm.trim()
-    if (!trimmed) return null
-    return (
-      BIS_PRODUCT_CATALOG.find((item) =>
-        item.productName.toLowerCase().includes(trimmed.toLowerCase()) ||
-        item.isCode.toLowerCase().includes(trimmed.toLowerCase()) ||
-        item.category.toLowerCase().includes(trimmed.toLowerCase())
-      ) || null
-    )
-  }, [searchTerm])
+    if (!debouncedQuery.trim()) return null
+    return filteredResults[0] ?? null
+  }, [debouncedQuery, filteredResults])
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if ((e.key === 'Tab' || e.key === 'ArrowRight') && ghostSuggestion) {
-      // Accept ghost text completion
-      e.preventDefault()
-      const fullText = searchTerm + ghostSuggestion
-      setSearchTerm(fullText)
-      const match = BIS_PRODUCT_CATALOG.find(
-        (p) => p.productName.toLowerCase() === fullText.toLowerCase()
-      )
-      if (match) {
-        selectAndSearchProduct(match)
-      }
-    } else if (e.key === 'Enter') {
-      e.preventDefault()
-      if (topMatch) {
-        selectAndSearchProduct(topMatch)
-      } else if (searchTerm.trim()) {
-        executeCustomRagSearch(searchTerm.trim())
-      }
-    }
-  }
-
-  const selectAndSearchProduct = async (product: BISProductEntry) => {
+  // ── Actions ──────────────────────────────────────────────────────────────
+  const selectAndSearchProduct = useCallback(async (product: BISProductEntry) => {
     setSearchTerm(product.productName)
+    setDebouncedQuery(product.productName)
     setSelectedProduct(product)
     setSearchingRag(true)
     setRagResult(null)
@@ -210,22 +98,23 @@ export function ProductForm() {
       const res = await queryRag({
         query: `What is the scope, clause requirements, and mandatory safety tests under ${product.isCode} for ${product.productName}?`,
         is_code: product.isCode.split(':')[0].trim(),
-        top_k: 4
+        top_k: 4,
       })
       setRagResult(res.answer)
     } catch {
-      setRagResult(`Official standard ${product.isCode} applies to ${product.productName}. Please check standard clause details in the vector database.`)
+      setRagResult(
+        `Official standard ${product.isCode} applies to ${product.productName}. Please check standard clause details in the vector database.`
+      )
     } finally {
       setSearchingRag(false)
     }
-  }
+  }, [])
 
-  const executeCustomRagSearch = async (term: string) => {
+  const executeCustomRagSearch = useCallback(async (term: string) => {
     setSearchingRag(true)
     setRagResult(null)
 
-    // Check if we matched a static catalog product
-    const match = BIS_PRODUCT_CATALOG.find((p) =>
+    const match = catalog.find((p) =>
       p.productName.toLowerCase().includes(term.toLowerCase())
     )
 
@@ -238,18 +127,17 @@ export function ProductForm() {
         standardTitle: `Indian Standard specifications for ${term}`,
         category: 'Custom Product Search',
         description: `Automated RAG query search across indexed Indian Standard (IS) codebooks for "${term}".`,
-        keyParameters: ['RAG Vector Search', 'Clause Matching', 'Standard Verification']
+        keyParameters: ['RAG Vector Search', 'Clause Matching', 'Standard Verification'],
       })
     }
 
     try {
       const res = await queryRag({
         query: `Find the exact Indian Standard (IS Code) number, title, and requirements for manufactured product: ${term}`,
-        top_k: 5
+        top_k: 5,
       })
       setRagResult(res.answer)
 
-      // Try to extract IS code from RAG response if selectedProduct was custom
       if (!match && res.answer) {
         const isMatch = res.answer.match(/IS\s+\d+(?:\s*\([^)]*\))?(?:\s*:\s*\d+)?/i)
         if (isMatch) {
@@ -264,8 +152,25 @@ export function ProductForm() {
     } finally {
       setSearchingRag(false)
     }
+  }, [catalog])
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if ((e.key === 'Tab' || e.key === 'ArrowRight') && ghostSuggestion) {
+      e.preventDefault()
+      const fullText = searchTerm + ghostSuggestion
+      handleSearchChange(fullText)
+      const match = catalog.find(
+        (p) => p.productName.toLowerCase() === fullText.toLowerCase()
+      )
+      if (match) selectAndSearchProduct(match)
+    } else if (e.key === 'Enter') {
+      e.preventDefault()
+      if (topMatch) selectAndSearchProduct(topMatch)
+      else if (searchTerm.trim()) executeCustomRagSearch(searchTerm.trim())
+    }
   }
 
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-background">
       {/* Header Banner */}
@@ -292,7 +197,7 @@ export function ProductForm() {
       <ScrollArea className="flex-1 p-6">
         <div className="max-w-4xl mx-auto space-y-6 pb-12">
 
-          {/* Search Box with Ghost Text Suggestion Overlay */}
+          {/* Search Box */}
           <Card className="border-border shadow-sm bg-card relative overflow-hidden">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-semibold flex items-center justify-between">
@@ -313,7 +218,7 @@ export function ProductForm() {
 
             <CardContent className="space-y-4">
               <div className="relative flex items-center">
-                {/* Background Ghost Text Overlay */}
+                {/* Ghost Text Overlay */}
                 <div
                   className="absolute inset-y-0 left-0 pl-10 pr-4 flex items-center pointer-events-none text-sm font-medium overflow-hidden whitespace-pre"
                   aria-hidden="true"
@@ -324,14 +229,13 @@ export function ProductForm() {
                   </span>
                 </div>
 
-                {/* Main Interactive Input */}
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
                 <Input
                   ref={inputRef}
                   type="text"
                   placeholder="Search product (e.g., LED Driver, Solar PV Module, TMT Steel Bar...)"
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                   onKeyDown={handleKeyDown}
                   className="pl-10 pr-24 h-12 text-sm font-medium bg-transparent z-0 border-border focus-visible:ring-amber-500"
                 />
@@ -343,10 +247,10 @@ export function ProductForm() {
                     if (topMatch) selectAndSearchProduct(topMatch)
                     else if (searchTerm.trim()) executeCustomRagSearch(searchTerm.trim())
                   }}
-                  disabled={!searchTerm.trim() || searchingRag}
+                  disabled={!searchTerm.trim() || searchingRag || catalogLoading}
                   className="absolute right-1.5 top-1/2 -translate-y-1/2 h-9 px-4 bg-amber-500 hover:bg-amber-600 text-white font-semibold text-xs z-10 shadow-sm"
                 >
-                  {searchingRag ? (
+                  {searchingRag || catalogLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <>
@@ -357,30 +261,80 @@ export function ProductForm() {
                 </Button>
               </div>
 
-              {/* Sample Quick-Select Suggestion Pills */}
-              <div className="space-y-1.5">
-                <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
-                  <Sparkles className="h-3 w-3 text-amber-500" />
-                  Popular BIS Product Categories:
-                </span>
-                <div className="flex flex-wrap gap-1.5 pt-0.5">
-                  {BIS_PRODUCT_CATALOG.slice(0, 7).map((item, idx) => (
-                    <Badge
-                      key={idx}
-                      variant="outline"
-                      className="cursor-pointer hover:bg-amber-500/10 hover:border-amber-500/40 text-xs font-normal transition-colors py-1 px-2.5 bg-muted/30"
-                      onClick={() => selectAndSearchProduct(item)}
-                    >
-                      <Tag className="h-3 w-3 mr-1 text-amber-500 opacity-70" />
-                      {item.productName}
-                    </Badge>
-                  ))}
+              {/* Inline filtered results list — shown while typing */}
+              {debouncedQuery.trim() && !selectedProduct && (
+                <div className="pt-1">
+                  {filteredResults.length > 0 ? (
+                    <div className="space-y-1">
+                      <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1 mb-1.5">
+                        <Search className="h-3 w-3 text-amber-500" />
+                        {filteredResults.length} result{filteredResults.length !== 1 ? 's' : ''} for &ldquo;{debouncedQuery}&rdquo;
+                      </span>
+                      <div className="flex flex-col gap-1 max-h-52 overflow-y-auto pr-1">
+                        {filteredResults.map((item, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => selectAndSearchProduct(item)}
+                            className="flex items-center gap-2.5 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-left text-xs hover:bg-amber-500/10 hover:border-amber-500/30 transition-colors group"
+                          >
+                            <Tag className="h-3.5 w-3.5 text-amber-500 shrink-0 opacity-70 group-hover:opacity-100" />
+                            <span className="font-medium text-foreground truncate flex-1">{item.productName}</span>
+                            <span className="font-mono text-muted-foreground shrink-0">{item.isCode}</span>
+                            <Badge variant="outline" className="text-[10px] shrink-0 hidden sm:inline-flex">
+                              {item.category}
+                            </Badge>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    /* ── Empty / no-results state ── */
+                    <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-muted/20 py-8 text-center">
+                      <SearchX className="h-8 w-8 text-muted-foreground/50" />
+                      <p className="text-sm font-medium text-muted-foreground">
+                        No products matched &ldquo;{debouncedQuery}&rdquo;
+                      </p>
+                      <p className="text-xs text-muted-foreground/70">
+                        Try a different name or press <kbd className="rounded border border-border px-1 py-0.5 font-mono text-[10px]">Enter</kbd> to search the RAG database directly.
+                      </p>
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
+
+              {/* Quick-Select Pills — shown when search is empty */}
+              {!debouncedQuery.trim() && (
+                <div className="space-y-1.5">
+                  <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                    <Sparkles className="h-3 w-3 text-amber-500" />
+                    Popular BIS Product Categories:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5 pt-0.5">
+                    {catalogLoading ? (
+                      <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                        <Loader2 className="h-3 w-3 animate-spin" /> Loading catalog…
+                      </span>
+                    ) : (
+                      catalog.slice(0, 7).map((item, idx) => (
+                        <Badge
+                          key={idx}
+                          variant="outline"
+                          className="cursor-pointer hover:bg-amber-500/10 hover:border-amber-500/40 text-xs font-normal transition-colors py-1 px-2.5 bg-muted/30"
+                          onClick={() => selectAndSearchProduct(item)}
+                        >
+                          <Tag className="h-3 w-3 mr-1 text-amber-500 opacity-70" />
+                          {item.productName}
+                        </Badge>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
-          {/* Result Card: Displaying the Indian Standard (IS Number) */}
+          {/* Result Card */}
           {selectedProduct && (
             <Card className="border-amber-500/30 bg-card shadow-md animate-in fade-in slide-in-from-bottom-2 overflow-hidden">
               <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent px-6 py-5 border-b border-amber-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -399,8 +353,23 @@ export function ProductForm() {
                   </h3>
                 </div>
 
-                <div className="text-xs text-muted-foreground font-mono bg-background/80 border border-border px-3 py-1.5 rounded-lg shrink-0">
-                  BIS Standard Verification: <span className="text-emerald-600 dark:text-emerald-400 font-bold">MATCHED</span>
+                <div className="flex items-center gap-2">
+                  <div className="text-xs text-muted-foreground font-mono bg-background/80 border border-border px-3 py-1.5 rounded-lg shrink-0">
+                    BIS Standard Verification: <span className="text-emerald-600 dark:text-emerald-400 font-bold">MATCHED</span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs"
+                    onClick={() => {
+                      setSelectedProduct(null)
+                      setRagResult(null)
+                      setSearchTerm('')
+                      setDebouncedQuery('')
+                    }}
+                  >
+                    Clear
+                  </Button>
                 </div>
               </div>
 
@@ -420,7 +389,7 @@ export function ProductForm() {
                 </div>
 
                 {/* Key Testing Parameters */}
-                {selectedProduct.keyParameters && selectedProduct.keyParameters.length > 0 && (
+                {selectedProduct.keyParameters.length > 0 && (
                   <div className="space-y-2 pt-1">
                     <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                       Mandatory Testing &amp; Conformance Parameters:
@@ -439,7 +408,7 @@ export function ProductForm() {
                   </div>
                 )}
 
-                {/* Live BIS RAG Clause Details */}
+                {/* RAG Clause Details */}
                 <div className="space-y-2 pt-2 border-t border-border">
                   <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                     <Sparkles className="h-3.5 w-3.5 text-amber-500" />

@@ -1,4 +1,5 @@
 import type {
+  BISProductEntry,
   ExportGraphResponse,
   RagQueryRequest,
   RagQueryResponse,
@@ -139,4 +140,138 @@ export async function deleteIsCode(isCode: string): Promise<number> {
     method: 'DELETE',
   })
   return data.deleted_chunks
+}
+
+// ---------------------------------------------------------------------------
+// Product Catalog
+// ---------------------------------------------------------------------------
+// Static dataset — single source of truth for the full BIS product catalog.
+// fetchProductCatalog() simulates an async initial load so the call site can
+// transparently swap this for a real endpoint in the future.
+// ---------------------------------------------------------------------------
+
+const PRODUCT_CATALOG_DATA: BISProductEntry[] = [
+  {
+    productName: 'Smart LED Driver & Control Gear',
+    isCode: 'IS 15885 (Part 2/Sec 13) : 2012',
+    standardTitle: 'Lamp Controlgear - Particular Requirements for DC or AC Supplied Electronic Controlgear for LED Modules',
+    category: 'Electronics & Lighting',
+    description: 'Safety and performance requirements for electronic control gear used with LED lighting modules.',
+    keyParameters: ['Output Voltage Limits', 'Thermal Protection', 'Short Circuit & Overload Test', 'Insulation Resistance'],
+  },
+  {
+    productName: 'Information Technology & Office Equipment',
+    isCode: 'IS 13252 (Part 1) : 2010',
+    standardTitle: 'Information Technology Equipment - Safety - Part 1: General Requirements',
+    category: 'IT & Consumer Electronics',
+    description: 'Safety standards for mains-powered or battery-powered information technology equipment including laptops, printers, and power adapters.',
+    keyParameters: ['Electric Shock Protection', 'Fire Enclosure Resistance', 'Dielectric Withstand Voltage', 'Clearance & Creepage Distances'],
+  },
+  {
+    productName: 'Crystalline Silicon Solar PV Modules',
+    isCode: 'IS 14286 : 2010',
+    standardTitle: 'Crystalline Silicon Terrestrial Photovoltaic (PV) Modules - Design Qualification and Type Approval',
+    category: 'Renewable & Solar Energy',
+    description: 'Design qualification, testing parameters, and type approval for solar photovoltaic modules.',
+    keyParameters: ['Thermal Cycling Test', 'Damp Heat Stress', 'Mechanical Load Performance', 'Hail Impact Test'],
+  },
+  {
+    productName: 'Portland Pozzolana Cement (PPC)',
+    isCode: 'IS 1489 (Part 1) : 2015',
+    standardTitle: 'Portland Pozzolana Cement Specification - Part 1: Fly Ash Based',
+    category: 'Civil & Building Materials',
+    description: 'Specification for fly-ash based Portland Pozzolana cement used for general structural construction.',
+    keyParameters: ['Fineness Specific Surface', 'Soundness Test (Le Chatelier)', 'Compressive Strength (7D/28D)', 'Initial & Final Setting Time'],
+  },
+  {
+    productName: 'High Strength Deformed Steel Bars (TMT Bars)',
+    isCode: 'IS 1786 : 2008',
+    standardTitle: 'High Strength Deformed Steel Bars and Wires for Concrete Reinforcement',
+    category: 'Steel & Metallurgy',
+    description: 'Requirements for Thermo-Mechanically Treated (TMT) steel bars used in reinforced concrete structures.',
+    keyParameters: ['0.2% Proof Stress / Yield Strength', 'Tensile Strength / Yield Ratio', 'Elongation Percentage', 'Bend & Rebend Performance'],
+  },
+  {
+    productName: 'PVC Insulated Electric Cables for Working Voltages up to 1100V',
+    isCode: 'IS 694 : 2010',
+    standardTitle: 'Polyvinyl Chloride Insulated Unsheathed and Sheathed Cables/Cords with Rigid and Flexible Conductors',
+    category: 'Electrical Wiring',
+    description: 'Safety and insulation testing for PVC cables used in building wiring and low-voltage applications.',
+    keyParameters: ['Conductor Resistance', 'Insulation Thickness', 'High Voltage Withstand Test', 'Flame Retardancy'],
+  },
+  {
+    productName: 'Rechargeable Lithium-Ion Batteries for Portable Applications',
+    isCode: 'IS 16046 (Part 2) : 2018',
+    standardTitle: 'Secondary Cells and Batteries Containing Alkaline or Other Non-Acid Electrolytes - Safety Requirements (Lithium Systems)',
+    category: 'Batteries & Energy Storage',
+    description: 'Mandatory safety testing for lithium batteries used in mobile phones, power banks, and portable electronics.',
+    keyParameters: ['External Short Circuit Test', 'Overcharge Protection', 'Thermal Abuse Resistance', 'Drop & Impact Resistance'],
+  },
+  {
+    productName: 'Industrial Safety Helmets',
+    isCode: 'IS 2925 : 1984',
+    standardTitle: 'Specification for Industrial Safety Helmets',
+    category: 'Personal Protective Equipment',
+    description: 'Requirements for head protection helmets used in construction, industrial sites, and mining.',
+    keyParameters: ['Shock Absorption Test', 'Penetration Resistance', 'Flammability Test', 'Electrical Insulation Test'],
+  },
+  {
+    productName: 'Packaged Drinking Water (Other than Natural Mineral Water)',
+    isCode: 'IS 14543 : 2016',
+    standardTitle: 'Packaged Drinking Water (Other than Packaged Natural Mineral Water) - Specification',
+    category: 'Food & Beverages',
+    description: 'Purity, microbiological limits, and chemical safety requirements for commercial packaged drinking water.',
+    keyParameters: ['TDS & pH Range', 'Microbiological Contaminants', 'Heavy Metals Testing (Lead, Arsenic)', 'Pesticide Residue Limits'],
+  },
+  {
+    productName: 'Switches for Domestic and Similar Fixed Electrical Installations',
+    isCode: 'IS 3854 : 1997',
+    standardTitle: 'Switches for Domestic and Similar Fixed Electrical Installations - Specification',
+    category: 'Electrical Accessories',
+    description: 'Safety and endurance requirements for wall switches used in home and office wiring.',
+    keyParameters: ['Make & Break Capacity', 'Normal Operation Endurance', 'Temperature Rise Test', 'Creepage Distance'],
+  },
+  {
+    productName: 'Outdoor Type Oil Immersed Distribution Transformers',
+    isCode: 'IS 1180 (Part 1) : 2014',
+    standardTitle: 'Outdoor Type Oil Immersed Distribution Transformers Up to and Including 2500 kVA, 33 kV',
+    category: 'Power Equipment',
+    description: 'Energy efficiency ratings, losses, and safety standards for distribution transformers.',
+    keyParameters: ['Maximum Total Losses at 50% & 100% Load', 'Impulse Voltage Withstand', 'Short Circuit Test', 'Temperature Rise'],
+  },
+  {
+    productName: 'Portable Fire Extinguishers',
+    isCode: 'IS 15683 : 2018',
+    standardTitle: 'Portable Fire Extinguishers - Performance and Construction - Specification',
+    category: 'Fire Safety & Protection',
+    description: 'Construction, hydraulic pressure tests, and fire rating performance for portable fire extinguishers.',
+    keyParameters: ['Fire Rating Test', 'Burst Pressure Test', 'Discharge Duration & Range', 'Corrosion Resistance'],
+  },
+  {
+    productName: 'Medical Gloves for Single Use',
+    isCode: 'IS 4148 : 1989',
+    standardTitle: 'Specification for Surgical Rubber Gloves',
+    category: 'Medical Devices',
+    description: 'Sterility, freedom from holes, tensile strength, and elongation requirements for rubber surgical gloves.',
+    keyParameters: ['Tensile Strength & Elongation', 'Freedom from Holes (Water Leak Test)', 'Sterility Test', 'Dimensions & Thickness'],
+  },
+  {
+    productName: 'Unplasticized PVC Pipes for Potable Water Supplies',
+    isCode: 'IS 4985 : 2021',
+    standardTitle: 'Unplasticized Polyvinyl Chloride (uPVC) Pipes for Potable Water Supplies - Specification',
+    category: 'Piping & Plumbing',
+    description: 'Hydrostatic pressure, impact resistance, and material safety for uPVC drinking water pipes.',
+    keyParameters: ['Internal Hydrostatic Pressure Test', 'Impact Resistance (TIR)', 'Opacity Percentage', 'Effect on Water Quality'],
+  },
+]
+
+/**
+ * Fetches the full BIS product catalog.
+ * Currently returns the bundled static dataset; swap the implementation body
+ * for a real API call (e.g. apiRequest<BISProductEntry[]>('/api/products'))
+ * once that endpoint is available — callers need no changes.
+ */
+export async function fetchProductCatalog(): Promise<BISProductEntry[]> {
+  // Future: return apiRequest<BISProductEntry[]>('/api/products')
+  return Promise.resolve(PRODUCT_CATALOG_DATA)
 }

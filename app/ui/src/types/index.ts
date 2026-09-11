@@ -1,3 +1,12 @@
+export interface BISProductEntry {
+  productName: string
+  isCode: string
+  standardTitle: string
+  category: string
+  description: string
+  keyParameters: string[]
+}
+
 export interface Citation {
   is_code: string
   clause: string
