@@ -17,7 +17,7 @@ build/
 *.egg
 
 # Backend data
-data/
+data/uploads/
 chroma_db/
 graph_backup.json
 
