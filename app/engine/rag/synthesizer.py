@@ -25,7 +25,7 @@ class CitationSynthesizer:
         self.openrouter_api_key = openrouter_api_key
         self.openrouter_model = openrouter_model
 
-    def synthesize(self, query: str, contexts: List[Dict[str, Any]]) -> SynthesisResult:
+    def synthesize(self, query: str, contexts: List[Dict[str, Any]], english_query: Optional[str] = None) -> SynthesisResult:
         if not contexts:
             return SynthesisResult(
                 answer="No relevant clauses found in the indexed codebooks for your query.",
@@ -33,11 +33,12 @@ class CitationSynthesizer:
             )
 
         if self.openrouter_api_key:
-            return self._synthesize_openrouter(query, contexts)
+            return self._synthesize_openrouter(query, contexts, english_query)
 
-        return self._synthesize_fallback(query, contexts)
+        # Fallback uses the English query for keyword matching when available
+        return self._synthesize_fallback(english_query or query, contexts)
 
-    def _build_context_prompt(self, query: str, contexts: List[Dict[str, Any]]) -> str:
+    def _build_context_prompt(self, query: str, contexts: List[Dict[str, Any]], english_query: Optional[str] = None) -> str:
         context_parts = []
         for i, ctx in enumerate(contexts, 1):
             meta = ctx.get("metadata", {})
@@ -48,9 +49,19 @@ class CitationSynthesizer:
                 f"Table: {meta.get('table_ref', 'N/A')}\n{ctx.get('text', '')}\n"
             )
 
-        return f"""User Query:
-{query}
+        # When a translation was used, show the English equivalent so the
+        # model understands what was searched, but make the language
+        # requirement unmissable right above the context block.
+        if english_query:
+            query_block = (
+                f"User Query (original language — YOU MUST RESPOND IN THIS LANGUAGE): {query}\n"
+                f"English translation used for retrieval: {english_query}\n"
+                f"\n⚠ RESPOND ENTIRELY IN THE SAME LANGUAGE AS THE USER'S ORIGINAL QUERY ABOVE. DO NOT USE ENGLISH.\n"
+            )
+        else:
+            query_block = f"User Query: {query}\n"
 
+        return f"""{query_block}
 You are a technical question-answering assistant for IS Code documents.
 
 INSTRUCTIONS:
@@ -64,60 +75,27 @@ INSTRUCTIONS:
    * If the context directly contains the answer, provide a precise answer.
    * If the context is only partially relevant, answer only the portion that is supported by the context.
    * If the context only identifies a relevant section or table of contents but does not contain the actual requirements or details, do NOT infer or invent the answer.
-   * If the context does not contain sufficient information, clearly state:
-     "The retrieved context does not contain sufficient information to answer this question."
+   * If the context does not contain sufficient information, clearly state it in the user's original language.
 
 4. Prioritize information in the following order:
 
    * Exact clauses that directly answer the query.
    * Specific technical requirements, limits, definitions, procedures, or numerical values.
    * Supporting clauses that provide necessary context.
-   * Table-of-contents or section-heading information only as navigational context, not as factual evidence for an answer.
+   * Table-of-contents or section-heading information only as navigational context, not as factual evidence.
 
-5. When multiple context sources are relevant, synthesize them into a single coherent answer. Do not mention "Context 1", "Context 2", or describe the retrieval process.
+5. When multiple context sources are relevant, synthesize them into a single coherent answer.
 
-6. Preserve important technical terminology, numerical values, units, conditions, and limitations exactly as supported by the context.
+6. Preserve important technical terminology, numerical values, units, conditions, and IS Code identifiers exactly as they appear.
 
 7. Attach inline citations immediately after the claim they support using this format:
    [IS Code | Clause X.X | Page Y]
 
 8. Do not fabricate citations. Use only citation metadata explicitly available in the provided context.
 
-9. Do NOT use meta-phrases such as:
+9. Do NOT use meta-phrases such as "Based on the provided context" or "According to Context 1".
 
-   * "Based on the provided context"
-   * "According to Context 1"
-   * "The retrieved documents state"
-   * "Here is the response"
-
-10. Do not mention the instructions, retrieval system, context chunks, embeddings, or source selection.
-
-11. If the user asks a question that cannot be answered from the provided context, do not guess. State that the retrieved context does not contain sufficient information.
-
-12. Keep the answer proportional to the question:
-
-* Simple factual question → 1–3 sentences.
-* Definition or explanation → short paragraph.
-* Complex question → structured explanation with concise bullet points when necessary.
-
-EXAMPLE:
-
-User Query: What are the main requirements for durable concrete?
-
-Good context:
-"8.2 Requirements for Durability
-The degree of exposure anticipated for the concrete during its service life, mix composition, workmanship, design and detailing should be considered..."
-
-Answer:
-The main requirements for durable concrete include considering the expected environmental exposure, appropriate mix composition, workmanship, design, and detailing. [IS 456 | Clause 8.2 | Page 18]
-
-If the context only contains:
-"8 DURABILITY OF CONCRETE
-8.1 General
-8.2 Requirements for Durability"
-
-Answer:
-The retrieved context identifies Clause 8.2 as covering requirements for durability but does not provide the actual requirements needed to answer the question.
+10. Keep the answer proportional to the question.
 
 Context Sources:
 {chr(10).join(context_parts)}
@@ -159,7 +137,7 @@ Context Sources:
 
         return citations
 
-    def _synthesize_openrouter(self, query: str, contexts: List[Dict[str, Any]]) -> SynthesisResult:
+    def _synthesize_openrouter(self, query: str, contexts: List[Dict[str, Any]], english_query: Optional[str] = None) -> SynthesisResult:
         try:
             import openai
             client = openai.OpenAI(
@@ -167,14 +145,31 @@ Context Sources:
                 base_url="https://openrouter.ai/api/v1"
             )
 
-            system_prompt = (
-                "You are an expert technical standards assistant for Indian Standard (IS) codebooks. "
-                "Synthesize answers in direct, fluent, natural technical prose (e.g. 'The main requirements for durable concrete include considering environmental exposure conditions, selecting appropriate materials and mix proportions...'). "
-                "Back technical statements with inline citations formatted as [IS Code | Clause X.X | Page Y]. "
-                "Do NOT use meta-phrases like 'Based on the provided context'. State factual answers directly."
-            )
+            is_multilingual = english_query is not None
 
-            prompt = self._build_context_prompt(query, contexts)
+            if is_multilingual:
+                system_prompt = (
+                    "You are an expert technical standards assistant for Indian Standard (IS) codebooks. "
+                    "The user has submitted a query in a non-English language. "
+                    "The context below was retrieved using an English translation of their query. "
+                    "You MUST respond entirely in the same language as the user's original query — "
+                    "do NOT write any part of your answer in English. "
+                    "Preserve IS Code numbers, clause numbers, page numbers, and numerical values exactly as-is. "
+                    "Back technical statements with inline citations formatted as [IS Code | Clause X.X | Page Y]. "
+                    "Do NOT use meta-phrases like 'Based on the provided context'. State factual answers directly."
+                )
+            else:
+                system_prompt = (
+                    "You are an expert technical standards assistant for Indian Standard (IS) codebooks. "
+                    "Synthesize answers in direct, fluent, natural technical prose. "
+                    "Back technical statements with inline citations formatted as [IS Code | Clause X.X | Page Y]. "
+                    "Do NOT use meta-phrases like 'Based on the provided context'. State factual answers directly."
+                )
+
+            # Build the user message. For multilingual queries, prepend a
+            # language reminder right next to the query so it is not buried.
+            prompt = self._build_context_prompt(query, contexts, english_query)
+
             response = client.chat.completions.create(
                 model=self.openrouter_model,
                 messages=[
@@ -182,13 +177,18 @@ Context Sources:
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.3,
-                max_tokens=1024
+                max_tokens=1024,
+                extra_body={"thinking": {"type": "disabled"}} if "qwen3" in self.openrouter_model.lower() else {}
             )
-            answer = response.choices[0].message.content.strip()
+            raw_answer = response.choices[0].message.content.strip()
+
+            # Strip any leaked <think>…</think> blocks from Qwen3
+            answer = re.sub(r"<think>.*?</think>", "", raw_answer, flags=re.DOTALL).strip()
+
             citations = self._parse_citations(answer, contexts)
             return SynthesisResult(answer=answer, citations=citations)
         except Exception:
-            return self._synthesize_fallback(query, contexts)
+            return self._synthesize_fallback(english_query or query, contexts)
 
     def _synthesize_fallback(self, query: str, contexts: List[Dict[str, Any]]) -> SynthesisResult:
         # 1. Extract explicit IS code mentioned in query (e.g. IS 1786, IS 13252)
