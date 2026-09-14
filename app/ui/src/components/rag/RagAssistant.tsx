@@ -5,12 +5,12 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import {
-  Loader2, Send, ArrowRight, Upload, X, BookOpen,
-  ChevronDown, CheckCircle2, AlertCircle, Trash2, Layers,
+  Loader2, Send, ArrowRight, BookOpen,
+  CheckCircle2, Layers,
 } from 'lucide-react'
 import { ChatMessage } from '@/components/rag/ChatMessage'
 import { SourceDrawer } from '@/components/rag/SourceDrawer'
-import { queryRag, ingestPdf, listIsCodes, deleteIsCode } from '@/lib/api'
+import { queryRag, listIsCodes } from '@/lib/api'
 import type { Citation, SourceChunk } from '@/types'
 
 interface Message {
@@ -39,14 +39,6 @@ export function RagAssistant() {
 
   const [selectedCode, setSelectedCode] = useState<string>('all')
   const [indexedCodes, setIndexedCodes] = useState<string[]>([])
-
-  const [ingestOpen, setIngestOpen] = useState(false)
-  const [ingestFile, setIngestFile] = useState<File | null>(null)
-  const [isIngesting, setIsIngesting] = useState(false)
-  const [ingestResult, setIngestResult] = useState<{ filename: string; chunks: number; isDelete?: boolean } | null>(null)
-  const [ingestError, setIngestError] = useState<string | null>(null)
-  const [deletingCode, setDeletingCode] = useState<string | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const textAreaRef = useRef<HTMLTextAreaElement>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
@@ -129,174 +121,8 @@ export function RagAssistant() {
     textAreaRef.current?.focus()
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] ?? null
-    setIngestFile(file)
-    setIngestResult(null)
-    setIngestError(null)
-  }
-
-  const handleIngest = async () => {
-    if (!ingestFile) return
-    setIsIngesting(true)
-    setIngestResult(null)
-    setIngestError(null)
-    try {
-      const res = await ingestPdf(ingestFile)
-      setIngestResult({
-        filename: ingestFile.name,
-        chunks: res.chunks_ingested ?? (res as unknown as Record<string, number>).chunks_added ?? 0,
-      })
-      setIngestFile(null)
-      if (fileInputRef.current) fileInputRef.current.value = ''
-      await fetchCodes()
-    } catch (err) {
-      setIngestError(err instanceof Error ? err.message : 'Ingest failed.')
-    } finally {
-      setIsIngesting(false)
-    }
-  }
-
-  const handleDeleteCode = async (code: string) => {
-    setDeletingCode(code)
-    setIngestResult(null)
-    setIngestError(null)
-    try {
-      const deletedChunks = await deleteIsCode(code)
-      await fetchCodes()
-      if (selectedCode === code) setSelectedCode('all')
-      setIngestResult({ filename: code, chunks: deletedChunks, isDelete: true })
-    } catch (err) {
-      setIngestError(err instanceof Error ? err.message : `Failed to remove ${code}`)
-    } finally {
-      setDeletingCode(null)
-    }
-  }
-
   return (
     <div className="flex h-full flex-col overflow-hidden bg-background">
-      {/* Codebook management panel */}
-      <div className="shrink-0 border-b border-border bg-card">
-        <button
-          type="button"
-          onClick={() => setIngestOpen((v) => !v)}
-          className="flex w-full items-center justify-between gap-3 px-5 py-3 text-sm transition-colors hover:bg-muted/40"
-        >
-          <span className="flex items-center gap-2 font-medium text-foreground">
-            <BookOpen className="h-4 w-4 text-muted-foreground" />
-            Manage IS Codebooks
-            <Badge variant="secondary" className="font-mono text-xs">
-              {indexedCodes.length} indexed
-            </Badge>
-          </span>
-          <ChevronDown
-            className={`h-4 w-4 text-muted-foreground transition-transform ${ingestOpen ? 'rotate-180' : ''}`}
-          />
-        </button>
-
-        {ingestOpen && (
-          <div className="space-y-4 border-t border-border px-5 py-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <label
-                htmlFor="pdf-upload"
-                className="flex cursor-pointer items-center gap-2 rounded-md border border-dashed border-border bg-background px-3 py-2 text-sm text-foreground transition-colors hover:border-primary/50"
-              >
-                <Upload className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">
-                  {ingestFile ? ingestFile.name : 'Choose IS codebook PDF'}
-                </span>
-              </label>
-              <input
-                id="pdf-upload"
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf"
-                className="sr-only"
-                onChange={handleFileChange}
-              />
-              <Button
-                size="sm"
-                disabled={!ingestFile || isIngesting}
-                onClick={() => void handleIngest()}
-                className="rounded-md"
-              >
-                {isIngesting ? (
-                  <>
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    Indexing
-                  </>
-                ) : (
-                  <>
-                    <Upload className="h-3.5 w-3.5" />
-                    Ingest
-                  </>
-                )}
-              </Button>
-              {ingestFile && !isIngesting && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIngestFile(null)
-                    if (fileInputRef.current) fileInputRef.current.value = ''
-                  }}
-                  className="rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-
-            {ingestResult && (
-              <div className="flex items-center gap-2 rounded-md bg-emerald-500/10 px-3 py-2 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                <CheckCircle2 className="h-4 w-4 shrink-0" />
-                {ingestResult.isDelete ? (
-                  <>Removed <strong>{ingestResult.filename}</strong>. {ingestResult.chunks} chunks purged.</>
-                ) : (
-                  <>Indexed <strong>{ingestResult.filename}</strong>. {ingestResult.chunks} chunks added.</>
-                )}
-              </div>
-            )}
-            {ingestError && (
-              <div className="flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">
-                <AlertCircle className="h-4 w-4 shrink-0" />
-                {ingestError}
-              </div>
-            )}
-
-            {indexedCodes.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs font-medium text-muted-foreground">
-                  Indexed standards
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {indexedCodes.map((code) => (
-                    <span
-                      key={code}
-                      className="group flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1 text-xs font-mono font-medium text-foreground"
-                    >
-                      {code}
-                      <button
-                        type="button"
-                        disabled={deletingCode === code}
-                        onClick={() => void handleDeleteCode(code)}
-                        className="rounded p-0.5 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100 disabled:opacity-50"
-                        title={`Remove ${code}`}
-                      >
-                        {deletingCode === code ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-3 w-3" />
-                        )}
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
       {/* Chat area */}
       <div className="relative flex-1 overflow-hidden">
         <ScrollArea ref={scrollAreaRef} className="h-full">
@@ -315,17 +141,10 @@ export function RagAssistant() {
                   </p>
                 </div>
 
-                {indexedCodes.length === 0 ? (
-                  <div className="flex items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-                    <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                    No codebooks indexed. Upload a PDF from Manage IS Codebooks above.
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    {indexedCodes.length} codebooks indexed and ready
-                  </div>
-                )}
+                <div className="flex items-center gap-2 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  {indexedCodes.length} codebooks indexed and ready
+                </div>
 
                 <div className="w-full space-y-2">
                   {samplePrompts.map((prompt) => (

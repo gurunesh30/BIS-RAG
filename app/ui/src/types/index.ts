@@ -51,12 +51,6 @@ export interface RagQueryResponse {
   source_chunks: SourceChunk[]
 }
 
-export interface RagIngestResponse {
-  chunks_ingested: number
-  is_code: string
-  status: string
-}
-
 export type EdgeStatus = 'ACTIVE' | 'SUSPENDED'
 
 export interface TraversalEdge {

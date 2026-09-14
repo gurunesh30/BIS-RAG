@@ -28,7 +28,6 @@ async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T
 export async function queryRag(
   request: RagQueryRequest
 ): Promise<RagQueryResponse> {
-  // Backend uses n_results, not top_k
   const backendRequest = {
     query: request.query,
     is_code: request.is_code,
@@ -44,7 +43,6 @@ export async function queryRag(
     body: JSON.stringify(backendRequest),
   })
 
-  // Normalise backend field names to match frontend types
   return {
     answer: raw.answer,
     citations: (raw.citations ?? []).map((c) => ({
@@ -65,29 +63,6 @@ export async function queryRag(
   }
 }
 
-export async function ingestPdf(
-  file: File
-): Promise<{ chunks_ingested: number; is_code: string; status: string }> {
-  const formData = new FormData()
-  formData.append('file', file)
-
-  const response = await fetch(`${API_BASE}/api/rag/ingest`, {
-    method: 'POST',
-    body: formData,
-  })
-
-  if (!response.ok) {
-    const error = await response.text()
-    throw new Error(`API error: ${response.status} - ${error}`)
-  }
-
-  return response.json() as Promise<{
-    chunks_ingested: number
-    is_code: string
-    status: string
-  }>
-}
-
 export async function verifyLicense(
   licenseId: string
 ): Promise<VerifyResponse> {
@@ -103,7 +78,6 @@ export async function verifyLicense(
     body: JSON.stringify({ license_id: licenseId }),
   })
 
-  // Normalise backend field names to match frontend VerifyResponse type
   return {
     license_id: raw.license_id,
     is_valid: raw.is_legitimate,
@@ -135,19 +109,8 @@ export async function listIsCodes(): Promise<string[]> {
   return data.codes ?? []
 }
 
-export async function deleteIsCode(isCode: string): Promise<number> {
-  const data = await apiRequest<{ deleted_chunks: number }>(`/api/rag/codes/${encodeURIComponent(isCode)}`, {
-    method: 'DELETE',
-  })
-  return data.deleted_chunks
-}
-
 // ---------------------------------------------------------------------------
 // Product Catalog
-// ---------------------------------------------------------------------------
-// Static dataset — single source of truth for the full BIS product catalog.
-// fetchProductCatalog() simulates an async initial load so the call site can
-// transparently swap this for a real endpoint in the future.
 // ---------------------------------------------------------------------------
 
 const PRODUCT_CATALOG_DATA: BISProductEntry[] = [
@@ -265,13 +228,6 @@ const PRODUCT_CATALOG_DATA: BISProductEntry[] = [
   },
 ]
 
-/**
- * Fetches the full BIS product catalog.
- * Currently returns the bundled static dataset; swap the implementation body
- * for a real API call (e.g. apiRequest<BISProductEntry[]>('/api/products'))
- * once that endpoint is available — callers need no changes.
- */
 export async function fetchProductCatalog(): Promise<BISProductEntry[]> {
-  // Future: return apiRequest<BISProductEntry[]>('/api/products')
   return Promise.resolve(PRODUCT_CATALOG_DATA)
 }
