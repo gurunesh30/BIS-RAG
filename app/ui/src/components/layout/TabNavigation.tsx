@@ -1,5 +1,5 @@
 import { TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { BookOpen, FileSearch, FlaskConical, Network } from 'lucide-react'
+import { BookOpen, Clipboard, FileSearch, FlaskConical, Network } from 'lucide-react'
 
 const TABS = [
   {
@@ -25,6 +25,12 @@ const TABS = [
     icon: FlaskConical,
     label: 'Nearby Labs',
     description: 'Testing labs & proximity',
+  },
+  {
+    value: 'clipboard',
+    icon: Clipboard,
+    label: 'Clipboard',
+    description: 'Paste history (3h)',
   },
 ]
 

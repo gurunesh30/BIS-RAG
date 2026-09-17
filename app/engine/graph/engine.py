@@ -26,16 +26,30 @@ class KnowledgeGraphEngine:
 
         # ── Nodes ──────────────────────────────────────────────────────
         nodes = [
+
+            # ── Licenses (5) ───────────────────────────────────────────
             NodeData(id="CM/L-1234567", type=NodeType.LICENSE, attributes={
-                "status": LicenseStatus.ACTIVE,
-                "expiry_date": "2028-06-30",
+                "status": LicenseStatus.ACTIVE, "expiry_date": "2028-06-30",
                 "name": "CM/L-1234567"
             }),
             NodeData(id="CM/L-9999999", type=NodeType.LICENSE, attributes={
-                "status": LicenseStatus.EXPIRED,
-                "expiry_date": "2024-01-15",
+                "status": LicenseStatus.EXPIRED, "expiry_date": "2024-01-15",
                 "name": "CM/L-9999999 (Expired)"
             }),
+            NodeData(id="CM/L-2024001", type=NodeType.LICENSE, attributes={
+                "status": LicenseStatus.ACTIVE, "expiry_date": "2027-03-31",
+                "name": "CM/L-2024001"
+            }),
+            NodeData(id="CM/L-2024002", type=NodeType.LICENSE, attributes={
+                "status": LicenseStatus.ACTIVE, "expiry_date": "2026-12-31",
+                "name": "CM/L-2024002"
+            }),
+            NodeData(id="CM/L-2024003", type=NodeType.LICENSE, attributes={
+                "status": LicenseStatus.SUSPENDED, "expiry_date": "2029-09-30",
+                "name": "CM/L-2024003 (Suspended)"
+            }),
+
+            # ── Manufacturers (6) ──────────────────────────────────────
             NodeData(id="MFG-Apex", type=NodeType.MANUFACTURER, attributes={
                 "name": "Apex Electronics Pvt Ltd",
                 "factory_registration_active": True,
@@ -51,22 +65,46 @@ class KnowledgeGraphEngine:
                 "factory_registration_active": True,
                 "factory_address": "Cement Nagar, Chandrapur, Maharashtra"
             }),
+            NodeData(id="MFG-BharatWire", type=NodeType.MANUFACTURER, attributes={
+                "name": "Bharat Wire & Cable Industries",
+                "factory_registration_active": True,
+                "factory_address": "MIDC Industrial Area, Pune, Maharashtra"
+            }),
+            NodeData(id="MFG-IndoSteel", type=NodeType.MANUFACTURER, attributes={
+                "name": "Indo Steel Rolling Mills Ltd",
+                "factory_registration_active": True,
+                "factory_address": "Steel Park, Raipur, Chhattisgarh"
+            }),
+            NodeData(id="MFG-SafeGuard", type=NodeType.MANUFACTURER, attributes={
+                "name": "SafeGuard PPE Manufacturers",
+                "factory_registration_active": False,
+                "factory_address": "Sector 12, Faridabad, Haryana"
+            }),
+
+            # ── Indian Standards (7) ───────────────────────────────────
             NodeData(id="IS 13252", type=NodeType.INDIAN_STANDARD, attributes={
-                "name": "IS 13252 – IT Equipment Safety",
-                "active": True
+                "name": "IS 13252 – IT Equipment Safety", "active": True
             }),
             NodeData(id="IS 14286", type=NodeType.INDIAN_STANDARD, attributes={
-                "name": "IS 14286 – Solar PV Modules",
-                "active": True
+                "name": "IS 14286 – Solar PV Modules", "active": True
             }),
             NodeData(id="IS 1489", type=NodeType.INDIAN_STANDARD, attributes={
-                "name": "IS 1489 – Portland Pozzolana Cement",
-                "active": True
+                "name": "IS 1489 – Portland Pozzolana Cement", "active": True
             }),
             NodeData(id="IS 456", type=NodeType.INDIAN_STANDARD, attributes={
-                "name": "IS 456 – Plain & Reinforced Concrete",
-                "active": True
+                "name": "IS 456 – Plain & Reinforced Concrete", "active": True
             }),
+            NodeData(id="IS 694", type=NodeType.INDIAN_STANDARD, attributes={
+                "name": "IS 694 – PVC Insulated Electric Cables", "active": True
+            }),
+            NodeData(id="IS 1786", type=NodeType.INDIAN_STANDARD, attributes={
+                "name": "IS 1786 – High Strength Deformed Steel Bars", "active": True
+            }),
+            NodeData(id="IS 2925", type=NodeType.INDIAN_STANDARD, attributes={
+                "name": "IS 2925 – Industrial Safety Helmets", "active": True
+            }),
+
+            # ── Test Labs (5) ──────────────────────────────────────────
             NodeData(id="LAB-NABL-01", type=NodeType.TEST_LAB, attributes={
                 "name": "Central Electronics Testing Lab",
                 "lab_accreditation": LabAccreditation.VALID
@@ -79,6 +117,16 @@ class KnowledgeGraphEngine:
                 "name": "NABL Civil Materials Lab",
                 "lab_accreditation": LabAccreditation.INVALID
             }),
+            NodeData(id="LAB-ELEC-07", type=NodeType.TEST_LAB, attributes={
+                "name": "Bureau of Indian Standards Electrical Lab",
+                "lab_accreditation": LabAccreditation.VALID
+            }),
+            NodeData(id="LAB-STEEL-02", type=NodeType.TEST_LAB, attributes={
+                "name": "National Metallurgical Lab Jamshedpur",
+                "lab_accreditation": LabAccreditation.VALID
+            }),
+
+            # ── Products (7) ──────────────────────────────────────────
             NodeData(id="PROD-LED-50W", type=NodeType.PRODUCT, attributes={
                 "name": "Smart Modular LED Driver 50W"
             }),
@@ -88,6 +136,18 @@ class KnowledgeGraphEngine:
             NodeData(id="PROD-CEMENT-PPC", type=NodeType.PRODUCT, attributes={
                 "name": "Portland Pozzolana Cement Grade 53"
             }),
+            NodeData(id="PROD-CABLE-1100V", type=NodeType.PRODUCT, attributes={
+                "name": "PVC Insulated Copper Cable 1100V 4mm²"
+            }),
+            NodeData(id="PROD-TMT-FE500", type=NodeType.PRODUCT, attributes={
+                "name": "TMT Reinforcement Bar Fe 500D"
+            }),
+            NodeData(id="PROD-HELMET-G1", type=NodeType.PRODUCT, attributes={
+                "name": "Industrial Safety Helmet Class G Type I"
+            }),
+            NodeData(id="PROD-LAPTOP-BIS", type=NodeType.PRODUCT, attributes={
+                "name": "Commercial Laptop 15.6 inch BIS Certified"
+            }),
         ]
 
         for nd in nodes:
@@ -95,26 +155,44 @@ class KnowledgeGraphEngine:
 
         # ── Edges ──────────────────────────────────────────────────────
         edges = [
+
             # License → Manufacturer (ISSUED_TO)
-            EdgeData(source="CM/L-1234567", target="MFG-Apex",       type=EdgeType.ISSUED_TO),
-            EdgeData(source="CM/L-1234567", target="MFG-SunPower",   type=EdgeType.ISSUED_TO),
-            EdgeData(source="CM/L-9999999", target="MFG-UltraTech",  type=EdgeType.ISSUED_TO),
+            EdgeData(source="CM/L-1234567", target="MFG-Apex",        type=EdgeType.ISSUED_TO),
+            EdgeData(source="CM/L-1234567", target="MFG-SunPower",    type=EdgeType.ISSUED_TO),
+            EdgeData(source="CM/L-9999999", target="MFG-UltraTech",   type=EdgeType.ISSUED_TO),
+            EdgeData(source="CM/L-2024001", target="MFG-BharatWire",  type=EdgeType.ISSUED_TO),
+            EdgeData(source="CM/L-2024002", target="MFG-IndoSteel",   type=EdgeType.ISSUED_TO),
+            EdgeData(source="CM/L-2024003", target="MFG-SafeGuard",   type=EdgeType.ISSUED_TO),
+            # Apex also holds the laptop license
+            EdgeData(source="CM/L-1234567", target="MFG-Apex",        type=EdgeType.ISSUED_TO),
 
             # Product → License (COVERS)
             EdgeData(source="PROD-LED-50W",     target="CM/L-1234567", type=EdgeType.COVERS),
             EdgeData(source="PROD-SOLAR-400W",  target="CM/L-1234567", type=EdgeType.COVERS),
             EdgeData(source="PROD-CEMENT-PPC",  target="CM/L-9999999", type=EdgeType.COVERS),
+            EdgeData(source="PROD-CABLE-1100V", target="CM/L-2024001", type=EdgeType.COVERS),
+            EdgeData(source="PROD-TMT-FE500",   target="CM/L-2024002", type=EdgeType.COVERS),
+            EdgeData(source="PROD-HELMET-G1",   target="CM/L-2024003", type=EdgeType.COVERS),
+            EdgeData(source="PROD-LAPTOP-BIS",  target="CM/L-1234567", type=EdgeType.COVERS),
 
             # Product → Standard (CONFORMS_TO)
             EdgeData(source="PROD-LED-50W",     target="IS 13252", type=EdgeType.CONFORMS_TO),
             EdgeData(source="PROD-SOLAR-400W",  target="IS 14286", type=EdgeType.CONFORMS_TO),
             EdgeData(source="PROD-CEMENT-PPC",  target="IS 1489",  type=EdgeType.CONFORMS_TO),
             EdgeData(source="PROD-CEMENT-PPC",  target="IS 456",   type=EdgeType.CONFORMS_TO),
+            EdgeData(source="PROD-CABLE-1100V", target="IS 694",   type=EdgeType.CONFORMS_TO),
+            EdgeData(source="PROD-TMT-FE500",   target="IS 1786",  type=EdgeType.CONFORMS_TO),
+            EdgeData(source="PROD-HELMET-G1",   target="IS 2925",  type=EdgeType.CONFORMS_TO),
+            EdgeData(source="PROD-LAPTOP-BIS",  target="IS 13252", type=EdgeType.CONFORMS_TO),
 
             # Product → TestLab (TESTED_BY)
             EdgeData(source="PROD-LED-50W",     target="LAB-NABL-01",  type=EdgeType.TESTED_BY),
             EdgeData(source="PROD-SOLAR-400W",  target="LAB-SOLAR-09", type=EdgeType.TESTED_BY),
             EdgeData(source="PROD-CEMENT-PPC",  target="LAB-MAT-04",   type=EdgeType.TESTED_BY),
+            EdgeData(source="PROD-CABLE-1100V", target="LAB-ELEC-07",  type=EdgeType.TESTED_BY),
+            EdgeData(source="PROD-TMT-FE500",   target="LAB-STEEL-02", type=EdgeType.TESTED_BY),
+            EdgeData(source="PROD-HELMET-G1",   target="LAB-NABL-01",  type=EdgeType.TESTED_BY),
+            EdgeData(source="PROD-LAPTOP-BIS",  target="LAB-NABL-01",  type=EdgeType.TESTED_BY),
         ]
 
         for ed in edges:

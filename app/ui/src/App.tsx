@@ -7,11 +7,14 @@ import { RagAssistant } from '@/components/rag/RagAssistant'
 import { GraphVerifier } from '@/components/graph/GraphVerifier'
 import { ProductForm } from '@/components/product/ProductForm'
 import { LabFinder } from '@/components/labs/LabFinder'
+import { ClipboardPage } from '@/components/clipboard/ClipboardPage'
+import { useClipboardCapture } from '@/hooks/useClipboard'
 import { Shield, Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  useClipboardCapture()
 
   return (
     <div className="flex min-h-svh flex-col overflow-hidden bg-background text-foreground md:flex-row">
@@ -126,6 +129,13 @@ function App() {
             className="h-full flex-1 overflow-hidden border-none p-0 outline-none focus-visible:outline-none"
           >
             <LabFinder />
+          </TabsContent>
+
+          <TabsContent
+            value="clipboard"
+            className="h-full flex-1 overflow-hidden border-none p-0 outline-none focus-visible:outline-none"
+          >
+            <ClipboardPage />
           </TabsContent>
         </main>
       </Tabs>
