@@ -1,0 +1,27 @@
+# BIS Conformity Assessment RAG Assistant — production dependencies
+# Pinned for seamless execution on Streamlit Cloud and inside Docker.
+
+# Main entrypoint (Streamlit UI) + backend API
+streamlit>=1.37.0
+fastapi>=0.111.0
+uvicorn[standard]>=0.30.0
+python-multipart>=0.0.9
+python-dotenv>=1.0.0
+pydantic>=2.7.0
+
+# Dense vector storage & embeddings
+chromadb>=0.5.0
+sentence-transformers>=3.0.0
+
+# Sparse keyword retrieval (exact statutory terms: Scheme-I, IS numbers)
+rank-bm25>=0.2.2
+
+# Document parsing / layout reconstruction
+PyMuPDF>=1.24.0
+
+# LLM generation via OpenRouter
+openai>=1.35.0
+httpx>=0.27.0
+
+# Knowledge graph engine
+networkx>=3.3
