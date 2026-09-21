@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from .rag.ingestion import PDFIngestionEngine, Chunk
-from .rag.vectorstore import VectorStore, VectorStoreConfig
+from .rag.pipeline import create_vector_store, create_neo4j_graph_store, expand_contexts
 from .rag.synthesizer import CitationSynthesizer, SynthesisResult
 from .graph.engine import KnowledgeGraphEngine
 from .graph.schema import NodeType, EdgeType
@@ -39,7 +39,11 @@ STANDARDS_DIR = Path("./data/standards")
 STANDARDS_DIR.mkdir(parents=True, exist_ok=True)
 
 ingestion_engine = PDFIngestionEngine()
-vector_store = VectorStore()
+# Cloud-native by default: Pinecone when PINECONE_API_KEY is set, else local
+# ChromaDB. The Neo4j graph store is used for Graph-RAG context expansion
+# (skipped entirely when NEO4J_URI is not configured).
+vector_store = create_vector_store()
+neo4j_graph_store = create_neo4j_graph_store()
 synthesizer = CitationSynthesizer(
     openrouter_api_key=os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENROUTER_API"),
     openrouter_model=os.getenv("OPENROUTER_MODEL", "qwen/qwen3-8b")
@@ -54,9 +58,17 @@ def _ingest_standards_dir() -> None:
     because add_chunks is idempotent per IS code (the seed guard in
     VectorStore._seed_initial_standards already handles deduplication at
     the code level, and this function skips codes already indexed).
+
+    When a Neo4j graph store is configured the same chunks are mirrored into
+    the graph (MERGE on chunk_key keeps the mirror idempotent).
     """
     pdf_files = sorted(STANDARDS_DIR.glob("*.pdf"))
-    if not pdf_files:
+
+    if neo4j_graph_store is not None:
+        _sync_seed_graph()
+        if not pdf_files:
+            return
+    elif not pdf_files:
         return
 
     already_indexed = set(vector_store.get_all_codes())
@@ -69,10 +81,29 @@ def _ingest_standards_dir() -> None:
         # Determine the IS code from the first chunk's metadata
         is_code = chunks[0].metadata.get("is_code", "")
         if is_code in already_indexed:
+            if neo4j_graph_store is not None:
+                neo4j_graph_store.ingest_chunks(chunks)
             continue
 
         added = vector_store.add_chunks(chunks)
+        if neo4j_graph_store is not None:
+            neo4j_graph_store.ingest_chunks(chunks)
         print(f"[startup] Ingested {pdf_path.name} → {added} chunks ({is_code})")
+
+
+def _sync_seed_graph() -> None:
+    """Mirror the bundled seed clauses into Neo4j once when the graph is empty."""
+    try:
+        if neo4j_graph_store.stats().get("Clause", 0) > 0:
+            return
+    except Exception as exc:  # noqa: BLE001 — graph must never block boot
+        print(f"[startup] Neo4j stats unavailable, skipping seed sync: {exc}")
+        return
+
+    from .rag.seed_data import seed_standard_chunks
+
+    neo4j_graph_store.ingest_chunks(seed_standard_chunks())
+    print("[startup] Seeded Neo4j graph with bundled standard clauses")
 
 
 # Auto-ingest all PDFs in data/standards/ before the server starts
@@ -133,6 +164,11 @@ async def query_rag(request: RAGQueryRequest):
             is_code_filter=request.is_code
         )
         contexts = retrieval.get("results", [])
+
+        # Graph-RAG expansion: pull neighbouring clauses / cross-references
+        # from Neo4j and merge them into the context block before reranking.
+        if neo4j_graph_store is not None:
+            contexts = expand_contexts(contexts, neo4j_graph_store, max_nodes=8)
 
         # Pass both the original query (for native-language response) and
         # the translated query (for fallback keyword matching) to synthesizer.

@@ -54,10 +54,11 @@ SAMPLE_PROMPTS = [
 @st.cache_resource(show_spinner=False)
 def build_pipeline():
     """Construct the shared retrieval + generation stack once per session."""
-    from app.engine.rag.vectorstore import VectorStore
+    from app.engine.rag.pipeline import create_vector_store, create_neo4j_graph_store
 
-    store = VectorStore()
-    retriever = HybridRetriever(dense_store=store)
+    store = create_vector_store()
+    graph_store = create_neo4j_graph_store()
+    retriever = HybridRetriever(dense_store=store, graph_store=graph_store)
     reranker = Reranker(model_name=RERANK_MODEL, threshold=RERANK_THRESHOLD)
     generator = CitationGenerator(
         api_key=OPENROUTER_API_KEY,
