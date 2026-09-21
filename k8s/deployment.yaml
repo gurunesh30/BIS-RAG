@@ -1,0 +1,110 @@
+# Enterprise Kubernetes orchestration for the BIS Conformity Assessment RAG Assistant
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bis-rag-assistant
+  namespace: bis-rag
+  labels:
+    app: bis-rag-assistant
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: bis-rag-assistant
+  template:
+    metadata:
+      labels:
+        app: bis-rag-assistant
+    spec:
+      containers:
+        - name: assistant
+          image: bis-rag:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8501
+          env:
+            # LLM synthesis via OpenRouter — inject via a Secret in production.
+            - name: OPENROUTER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: bis-rag-secrets
+                  key: OPENROUTER_API_KEY
+                  optional: true
+            - name: OPENROUTER_MODEL
+              value: "qwen/qwen3-8b"
+            - name: RERANK_MODEL
+              value: "cross-encoder/ms-marco-MiniLM-L-6-v2"
+            - name: RERANK_THRESHOLD
+              value: "0.15"
+          volumeMounts:
+            - name: chroma-store
+              mountPath: /app/chroma_db
+          readinessProbe:
+            httpGet:
+              path: /_stcore/health
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /_stcore/health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: "2"
+              memory: 4Gi
+      volumes:
+        - name: chroma-store
+          persistentVolumeClaim:
+            claimName: chroma-store-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: chroma-store-pvc
+  namespace: bis-rag
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bis-rag-assistant
+  namespace: bis-rag
+  labels:
+    app: bis-rag-assistant
+spec:
+  type: ClusterIP
+  selector:
+    app: bis-rag-assistant
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bis-rag-assistant
+  namespace: bis-rag
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: bis-rag-assistant
+                port:
+                  name: http
