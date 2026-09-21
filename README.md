@@ -617,8 +617,3 @@ On the next server start, `_ingest_standards_dir()` runs automatically:
 - Skips any IS code already present in ChromaDB — safe to restart
 
 The 10 seed chunks bundled in `vectorstore.py` are always available without any PDFs and cover: IS 1786, IS 13252, IS 15885, IS 14286, IS 1489, IS 694, IS 16046, IS 2925.
-
-Fe 500 தர எஃகு கம்பியின் குறைந்தபட்ச விளைச்சல் அழுத்தம் என்ன?
-What are the specific steps and document requirements to apply for a BIS Standard Mark license
-What is impact absorption test for industrial safety helmet?
-What are the thermal abuse test requirements for lithium batteries?
