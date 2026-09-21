@@ -25,3 +25,11 @@ httpx>=0.27.0
 
 # Knowledge graph engine
 networkx>=3.3
+
+# ── Cloud database migration ────────────────────────────────────────────────
+# Pinecone — managed dense vector store
+pinecone>=5.0.0
+# Neo4j — managed graph database (Aura / cloud) for Graph-RAG relations
+neo4j>=5.20.0
+# Dev/test only
+pytest>=8.0.0
