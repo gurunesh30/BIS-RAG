@@ -1,0 +1,58 @@
+# BIS Conformity Assessment RAG Assistant — single-command stack
+#
+#   docker compose up --build
+#
+# Two services, one image (built from this repo two ways):
+#   * api — FastAPI backend (RAG query + graph endpoints) on :8000
+#   * ui  — Streamlit assistant on :8501
+#
+# Secrets/config come from the untracked .env file (see .env.example). Cloud
+# mode auto-activates when the corresponding credentials are present; without
+# them both services share a persistent local ChromaDB volume.
+
+services:
+  api:
+    build:
+      context: .
+    image: bis-rag:latest
+    container_name: bis-rag-api
+    command: uvicorn app.engine.main:app --host 0.0.0.0 --port 8000
+    env_file:
+      - .env
+    volumes:
+      - chroma_data:/app/chroma_db
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  ui:
+    build:
+      context: .
+    image: bis-rag:latest
+    container_name: bis-rag-ui
+    command: streamlit run app.py --server.port=8501 --server.address=0.0.0.0
+    env_file:
+      - .env
+    volumes:
+      - chroma_data:/app/chroma_db
+    ports:
+      - "8501:8501"
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  chroma_data:
+    name: bis-rag-chroma
+    external: false

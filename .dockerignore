@@ -1,0 +1,47 @@
+# Version control
+.git
+.gitignore
+*.patch
+
+# Local secrets & environment — never bake into the image
+.env
+.env.*
+!.env.example
+
+# Local Python virtualenv (several GB) — installed fresh in the image
+app/engine/env
+.venv
+venv
+
+# Runtime data — seeded at first boot, persisted with a Docker volume
+chroma_db
+*.sqlite3
+graph_backup.json
+graph_backup*.json
+
+# caches & build artifacts
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+.mypy_cache
+.ruff_cache
+build
+dist
+*.egg-info
+.ipynb_checkpoints
+
+# docs / specs / orchestration not needed inside the image
+spec
+desc.md
+deployment.yaml
+k8s
+docs
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.idea
+.vscode
+*.swp
