@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional, List
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -135,6 +135,19 @@ class GraphVerifyRequest(BaseModel):
     product_id: Optional[str] = None
 
 
+class UploadIngestResponse(BaseModel):
+    success: bool
+    filename: str
+    is_code: Optional[str] = None
+    chunk_count: int = 0
+    added_chunks: int = 0
+    already_indexed: bool = False
+    message: str = ""
+
+
+_MAX_UPLOAD_BYTES = 50 * 1024 * 1024  # 50 MB safety cap per PDF
+
+
 class GraphAddNodeRequest(BaseModel):
     node_id: str
     node_type: str
@@ -197,6 +210,81 @@ async def query_rag(request: RAGQueryRequest):
             ],
             contexts=contexts
         )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/rag/upload", response_model=UploadIngestResponse)
+async def upload_and_ingest_pdf(file: UploadFile = File(...)):
+    """
+    Upload an IS codebook PDF and ingest it end-to-end.
+
+    The file is persisted to data/standards/, parsed into chunks, embedded
+    and upserted into the active vector store (Pinecone or ChromaDB), and
+    mirrored into the Neo4j graph store when configured. Re-uploading an
+    already-indexed IS code is idempotent: the vector upsert is skipped and
+    the graph mirror is refreshed instead. FastAPI/Swagger only — not exposed
+    in the Streamlit frontend.
+    """
+    try:
+        original_name = Path(file.filename or "upload.pdf").name
+        if not original_name.lower().endswith(".pdf"):
+            raise HTTPException(status_code=400, detail="Only PDF files are accepted")
+        if not original_name:
+            raise HTTPException(status_code=400, detail="A filename is required")
+
+        dest = STANDARDS_DIR / original_name
+
+        # Stream the upload to disk with a size guard.
+        size = 0
+        with dest.open("wb") as out:
+            while True:
+                data = await file.read(1024 * 1024)
+                if not data:
+                    break
+                size += len(data)
+                if size > _MAX_UPLOAD_BYTES:
+                    dest.unlink(missing_ok=True)
+                    raise HTTPException(status_code=413, detail="File exceeds the 50 MB limit")
+                out.write(data)
+        await file.close()
+
+        chunks = ingestion_engine.ingest_pdf(str(dest), dest.name)
+        if not chunks:
+            dest.unlink(missing_ok=True)
+            raise HTTPException(
+                status_code=422,
+                detail=f"No ingestible chunks were extracted from '{original_name}'",
+            )
+
+        is_code = str(chunks[0].metadata.get("is_code", "")).strip()
+        already_indexed = is_code in set(vector_store.get_all_codes())
+
+        # Mirror to Neo4j either way (MERGE makes it idempotent).
+        if neo4j_graph_store is not None:
+            neo4j_graph_store.ingest_chunks(chunks)
+
+        if already_indexed:
+            message = (
+                f"'{original_name}' is already indexed as {is_code}; "
+                "skipped vector upsert (graph mirror refreshed)"
+            )
+            added_chunks = 0
+        else:
+            added_chunks = vector_store.add_chunks(chunks)
+            message = f"Indexed '{original_name}' as {is_code} ({added_chunks} chunks)"
+
+        return UploadIngestResponse(
+            success=True,
+            filename=original_name,
+            is_code=is_code or None,
+            chunk_count=len(chunks),
+            added_chunks=added_chunks,
+            already_indexed=already_indexed,
+            message=message,
+        )
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
