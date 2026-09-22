@@ -25,14 +25,23 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS: In production set FRONTEND_URL to your Vercel domain(s), comma-separated.
-# e.g. FRONTEND_URL=https://bis-rag.vercel.app,https://bis-rag-*.vercel.app
+# CORS Configuration:
+# Support Vercel production/preview domains and local development environments.
+_default_origins = [
+    "https://bis-rag-teal.vercel.app",
+    "https://bis-rag.vercel.app",
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:8001",
+]
 _frontend_url = os.getenv("FRONTEND_URL", "")
-_allowed_origins = [u.strip() for u in _frontend_url.split(",") if u.strip()] or ["*"]
+_custom_origins = [u.strip().rstrip("/") for u in _frontend_url.split(",") if u.strip()]
+_allowed_origins = list(dict.fromkeys(_default_origins + _custom_origins))
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_allowed_origins,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

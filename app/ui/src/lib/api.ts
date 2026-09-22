@@ -6,10 +6,15 @@ import type {
   VerifyResponse,
 } from '@/types'
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001'
+const RAW_API_BASE =
+  import.meta.env.VITE_API_BASE_URL ||
+  import.meta.env.VITE_API_URL ||
+  'http://localhost:8001'
+const API_BASE = RAW_API_BASE.replace(/\/+$/, '')
 
 async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
+  const cleanPath = path.startsWith('/') ? path : `/${path}`
+  const response = await fetch(`${API_BASE}${cleanPath}`, {
     headers: {
       'Content-Type': 'application/json',
       ...options.headers,
