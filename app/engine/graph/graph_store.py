@@ -124,7 +124,7 @@ class Neo4jGraphStore:
         database: Optional[str] = None,
     ):
         self.uri = uri or os.getenv("NEO4J_URI")
-        self.username = username or os.getenv("NEO4J_USERNAME", "neo4j")
+        self.username = username or os.getenv("NEO4J_USER") or os.getenv("NEO4J_USERNAME", "neo4j")
         self.password = password or os.getenv("NEO4J_PASSWORD", "")
         self.database = database or os.getenv("NEO4J_DATABASE", "neo4j")
 

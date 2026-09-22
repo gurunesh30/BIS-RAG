@@ -42,12 +42,23 @@ def create_vector_store():
 
 
 def create_neo4j_graph_store():
-    """Return a Neo4j graph store when ``NEO4J_URI`` is configured, else None."""
+    """Return a Neo4j graph store when ``NEO4J_URI`` is configured, else None.
+
+    If the connection fails (bad credentials, network issues, etc.) the error
+    is logged and ``None`` is returned so the rest of the application can
+    continue without Graph-RAG expansion.
+    """
     if not neo4j_configured():
         return None
-    from ..graph.graph_store import Neo4jGraphStore
+    try:
+        from ..graph.graph_store import Neo4jGraphStore
 
-    return Neo4jGraphStore()
+        store = Neo4jGraphStore()
+        print("[startup] Neo4j graph store connected successfully")
+        return store
+    except Exception as exc:  # noqa: BLE001
+        print(f"[startup] ⚠ Neo4j unavailable — skipping Graph-RAG expansion: {exc}")
+        return None
 
 
 def expand_contexts(
