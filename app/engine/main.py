@@ -6,7 +6,7 @@ from pathlib import Path
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from starlette.concurrency import run_in_threadpool
 
 from .rag.ingestion import PDFIngestionEngine, Chunk
 from .rag.pipeline import create_vector_store, create_neo4j_graph_store, expand_contexts
@@ -214,6 +214,35 @@ async def query_rag(request: RAGQueryRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+def _process_and_ingest_pdf(dest_path: Path, filename: str):
+    chunks = ingestion_engine.ingest_pdf(str(dest_path), filename)
+    if not chunks:
+        dest_path.unlink(missing_ok=True)
+        raise HTTPException(
+            status_code=422,
+            detail=f"No ingestible chunks were extracted from '{filename}'",
+        )
+
+    is_code = str(chunks[0].metadata.get("is_code", "")).strip()
+    already_indexed = is_code in set(vector_store.get_all_codes())
+
+    # Mirror to Neo4j either way (MERGE makes it idempotent).
+    if neo4j_graph_store is not None:
+        neo4j_graph_store.ingest_chunks(chunks)
+
+    if already_indexed:
+        message = (
+            f"'{filename}' is already indexed as {is_code}; "
+            "skipped vector upsert (graph mirror refreshed)"
+        )
+        added_chunks = 0
+    else:
+        added_chunks = vector_store.add_chunks(chunks)
+        message = f"Indexed '{filename}' as {is_code} ({added_chunks} chunks)"
+
+    return is_code, len(chunks), added_chunks, already_indexed, message
+
+
 @app.post("/api/rag/upload", response_model=UploadIngestResponse)
 async def upload_and_ingest_pdf(file: UploadFile = File(...)):
     """
@@ -249,36 +278,15 @@ async def upload_and_ingest_pdf(file: UploadFile = File(...)):
                 out.write(data)
         await file.close()
 
-        chunks = ingestion_engine.ingest_pdf(str(dest), dest.name)
-        if not chunks:
-            dest.unlink(missing_ok=True)
-            raise HTTPException(
-                status_code=422,
-                detail=f"No ingestible chunks were extracted from '{original_name}'",
-            )
-
-        is_code = str(chunks[0].metadata.get("is_code", "")).strip()
-        already_indexed = is_code in set(vector_store.get_all_codes())
-
-        # Mirror to Neo4j either way (MERGE makes it idempotent).
-        if neo4j_graph_store is not None:
-            neo4j_graph_store.ingest_chunks(chunks)
-
-        if already_indexed:
-            message = (
-                f"'{original_name}' is already indexed as {is_code}; "
-                "skipped vector upsert (graph mirror refreshed)"
-            )
-            added_chunks = 0
-        else:
-            added_chunks = vector_store.add_chunks(chunks)
-            message = f"Indexed '{original_name}' as {is_code} ({added_chunks} chunks)"
+        is_code, chunk_count, added_chunks, already_indexed, message = await run_in_threadpool(
+            _process_and_ingest_pdf, dest, dest.name
+        )
 
         return UploadIngestResponse(
             success=True,
             filename=original_name,
             is_code=is_code or None,
-            chunk_count=len(chunks),
+            chunk_count=chunk_count,
             added_chunks=added_chunks,
             already_indexed=already_indexed,
             message=message,

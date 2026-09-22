@@ -141,10 +141,13 @@ class PineconeVectorStore:
         if not chunks:
             return 0
 
+        texts = [chunk.text for chunk in chunks]
+        embeddings = embed_texts(texts)
+
         vectors: List[Tuple[str, List[float], Dict[str, Any]]] = []
-        for chunk in chunks:
+        for chunk, emb in zip(chunks, embeddings):
             meta = self._metadata_for(chunk)
-            vectors.append((str(uuid.uuid4()), embed_texts([chunk.text])[0], meta))
+            vectors.append((str(uuid.uuid4()), emb, meta))
 
         # Push in batches of 100; Pinecone rejects over-sized payloads.
         for start in range(0, len(vectors), 100):
@@ -152,7 +155,9 @@ class PineconeVectorStore:
             self._index.upsert(vectors=batch, namespace=self.config.namespace)
 
         for chunk in chunks:
-            self._codes.add(str(chunk.metadata.get("is_code", "")).strip())
+            code = str(chunk.metadata.get("is_code", "")).strip()
+            if code:
+                self._codes.add(code)
         return len(chunks)
 
     # ── Retrieval ───────────────────────────────────────────────────────────

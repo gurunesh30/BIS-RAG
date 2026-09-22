@@ -65,33 +65,37 @@ def _extract_entities(text: str) -> List[str]:
 
 
 # ── Cypher templates ────────────────────────────────────────────────────────
-_CREATE_DOC_AND_CLAUSE = """
-MERGE (d:Document {code: $is_code})
-MERGE (c:Clause {chunk_key: $chunk_key})
-SET c.is_code = $is_code,
-    c.clause_num = $clause_num,
-    c.page_num = $page_num,
-    c.table_ref = $table_ref,
-    c.text = $text
+_BULK_CREATE_DOCS_AND_CLAUSES = """
+UNWIND $rows AS row
+MERGE (d:Document {code: row.is_code})
+MERGE (c:Clause {chunk_key: row.chunk_key})
+SET c.is_code = row.is_code,
+    c.clause_num = row.clause_num,
+    c.page_num = row.page_num,
+    c.table_ref = row.table_ref,
+    c.text = row.text
 MERGE (d)-[:CONTAINS]->(c)
 """
 
-_CREATE_CLAUSE_REFERENCE = """
-MATCH (c:Clause {chunk_key: $from_key})
-MATCH (t:Clause) WHERE t.is_code = $is_code AND t.clause_num = $ref
+_BULK_CREATE_CLAUSE_REFERENCES = """
+UNWIND $items AS item
+MATCH (c:Clause {chunk_key: item.from_key})
+MATCH (t:Clause) WHERE t.is_code = item.is_code AND t.clause_num = item.ref
 MERGE (c)-[:REFERENCES]->(t)
 """
 
-_CREATE_DOCUMENT_REFERENCE = """
-MATCH (c:Clause {chunk_key: $from_key})
-MATCH (d:Document {code: $ref})
-WHERE NOT d.code = $is_code
+_BULK_CREATE_DOCUMENT_REFERENCES = """
+UNWIND $items AS item
+MATCH (c:Clause {chunk_key: item.from_key})
+MATCH (d:Document {code: item.ref})
+WHERE NOT d.code = item.is_code
 MERGE (c)-[:REFERENCES]->(d)
 """
 
-_CREATE_ENTITY_REQUIREMENT = """
-MATCH (c:Clause {chunk_key: $chunk_key})
-MERGE (e:Entity {label: $label})
+_BULK_CREATE_ENTITY_REQUIREMENTS = """
+UNWIND $items AS item
+MATCH (c:Clause {chunk_key: item.chunk_key})
+MERGE (e:Entity {label: item.label})
 MERGE (c)-[:REQUIRES]->(e)
 """
 
@@ -157,40 +161,31 @@ class Neo4jGraphStore:
 
     @staticmethod
     def _ingest_tx(tx, rows: List[Dict[str, Any]]) -> None:
-        # Pass 1 — materialise every clause + document + CONTAINS edge.
-        for row in rows:
-            tx.run(
-                _CREATE_DOC_AND_CLAUSE,
-                is_code=row["is_code"],
-                chunk_key=row["chunk_key"],
-                clause_num=row["clause_num"],
-                page_num=row["page_num"],
-                table_ref=row["table_ref"],
-                text=row["text"],
-            )
-        # Pass 2 — wire up cross references and entity requirements (rows may
-        # reference clauses/entities that were only merged in pass 1).
-        for row in rows:
-            for ref in row["clause_refs"]:
-                tx.run(
-                    _CREATE_CLAUSE_REFERENCE,
-                    from_key=row["chunk_key"],
-                    is_code=row["is_code"],
-                    ref=ref,
-                )
-            for ref in row["document_refs"]:
-                tx.run(
-                    _CREATE_DOCUMENT_REFERENCE,
-                    from_key=row["chunk_key"],
-                    is_code=row["is_code"],
-                    ref=ref,
-                )
-            for label in row["entities"]:
-                tx.run(
-                    _CREATE_ENTITY_REQUIREMENT,
-                    chunk_key=row["chunk_key"],
-                    label=label,
-                )
+        if not rows:
+            return
+
+        tx.run(_BULK_CREATE_DOCS_AND_CLAUSES, rows=rows)
+
+        clause_refs = [
+            {"from_key": row["chunk_key"], "is_code": row["is_code"], "ref": ref}
+            for row in rows for ref in row["clause_refs"]
+        ]
+        if clause_refs:
+            tx.run(_BULK_CREATE_CLAUSE_REFERENCES, items=clause_refs)
+
+        document_refs = [
+            {"from_key": row["chunk_key"], "is_code": row["is_code"], "ref": ref}
+            for row in rows for ref in row["document_refs"]
+        ]
+        if document_refs:
+            tx.run(_BULK_CREATE_DOCUMENT_REFERENCES, items=document_refs)
+
+        entities = [
+            {"chunk_key": row["chunk_key"], "label": label}
+            for row in rows for label in row["entities"]
+        ]
+        if entities:
+            tx.run(_BULK_CREATE_ENTITY_REQUIREMENTS, items=entities)
 
     def ingest_chunks(self, chunks, batch_size: int = 200) -> int:
         rows = []
