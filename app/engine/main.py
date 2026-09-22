@@ -1,7 +1,8 @@
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List
 from pathlib import Path
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from pydantic import BaseModel, Field
@@ -16,37 +17,9 @@ from .graph.engine import KnowledgeGraphEngine
 from .graph.schema import NodeType, EdgeType
 from .services.translator import translate_query
 
-
 from dotenv import load_dotenv
 load_dotenv()
 
-app = FastAPI(
-    title="BIS RAG & Graph Verification Engine",
-    description="Backend API for citation-based RAG and NetworkX knowledge graph license verification.",
-    version="1.0.0"
-)
-
-# CORS Configuration:
-# Support Vercel production/preview domains and local development environments.
-_default_origins = [
-    "https://bis-rag-teal.vercel.app",
-    "https://bis-rag.vercel.app",
-    "http://localhost:3000",
-    "http://localhost:5173",
-    "http://localhost:8001",
-]
-_frontend_url = os.getenv("FRONTEND_URL", "")
-_custom_origins = [u.strip().rstrip("/") for u in _frontend_url.split(",") if u.strip()]
-_allowed_origins = list(dict.fromkeys(_default_origins + _custom_origins))
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=_allowed_origins,
-    allow_origin_regex=r"https://.*\.vercel\.app",
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 # Standards PDFs are placed in data/standards/ and ingested automatically
 # on startup. The uploads scratch directory is kept for any future use.
@@ -54,9 +27,6 @@ STANDARDS_DIR = Path("./data/standards")
 STANDARDS_DIR.mkdir(parents=True, exist_ok=True)
 
 ingestion_engine = PDFIngestionEngine()
-# Cloud-native by default: Pinecone when PINECONE_API_KEY is set, else local
-# ChromaDB. The Neo4j graph store is used for Graph-RAG context expansion
-# (skipped entirely when NEO4J_URI is not configured).
 vector_store = create_vector_store()
 neo4j_graph_store = create_neo4j_graph_store()
 synthesizer = CitationSynthesizer(
@@ -64,46 +34,6 @@ synthesizer = CitationSynthesizer(
     openrouter_model=os.getenv("OPENROUTER_MODEL", "qwen/qwen3-8b")
 )
 graph_engine = KnowledgeGraphEngine(backup_path="./graph_backup.json")
-
-
-def _ingest_standards_dir() -> None:
-    """
-    Scans data/standards/ for PDF files and ingests any that are not yet
-    present in the vector store. Runs once at startup — safe to re-run
-    because add_chunks is idempotent per IS code (the seed guard in
-    VectorStore._seed_initial_standards already handles deduplication at
-    the code level, and this function skips codes already indexed).
-
-    When a Neo4j graph store is configured the same chunks are mirrored into
-    the graph (MERGE on chunk_key keeps the mirror idempotent).
-    """
-    pdf_files = sorted(STANDARDS_DIR.glob("*.pdf"))
-
-    if neo4j_graph_store is not None:
-        _sync_seed_graph()
-        if not pdf_files:
-            return
-    elif not pdf_files:
-        return
-
-    already_indexed = set(vector_store.get_all_codes())
-
-    for pdf_path in pdf_files:
-        chunks = ingestion_engine.ingest_pdf(str(pdf_path), pdf_path.name)
-        if not chunks:
-            continue
-
-        # Determine the IS code from the first chunk's metadata
-        is_code = chunks[0].metadata.get("is_code", "")
-        if is_code in already_indexed:
-            if neo4j_graph_store is not None:
-                neo4j_graph_store.ingest_chunks(chunks)
-            continue
-
-        added = vector_store.add_chunks(chunks)
-        if neo4j_graph_store is not None:
-            neo4j_graph_store.ingest_chunks(chunks)
-        print(f"[startup] Ingested {pdf_path.name} → {added} chunks ({is_code})")
 
 
 def _sync_seed_graph() -> None:
@@ -121,12 +51,80 @@ def _sync_seed_graph() -> None:
     print("[startup] Seeded Neo4j graph with bundled standard clauses")
 
 
-# Auto-ingest all PDFs in data/standards/ before the server starts
-# accepting requests.
-@app.on_event("startup")
-async def startup_ingest():
-    _ingest_standards_dir()
+def _ingest_standards_dir() -> None:
+    """
+    Scans data/standards/ for PDF files and ingests any that are not yet
+    present in the vector store.
+    """
+    pdf_files = sorted(STANDARDS_DIR.glob("*.pdf"))
 
+    if neo4j_graph_store is not None:
+        _sync_seed_graph()
+        if not pdf_files:
+            return
+    elif not pdf_files:
+        return
+
+    already_indexed = set(vector_store.get_all_codes())
+
+    for pdf_path in pdf_files:
+        chunks = ingestion_engine.ingest_pdf(str(pdf_path), pdf_path.name)
+        if not chunks:
+            continue
+
+        is_code = chunks[0].metadata.get("is_code", "")
+        if is_code in already_indexed:
+            if neo4j_graph_store is not None:
+                neo4j_graph_store.ingest_chunks(chunks)
+            continue
+
+        added = vector_store.add_chunks(chunks)
+        if neo4j_graph_store is not None:
+            neo4j_graph_store.ingest_chunks(chunks)
+        print(f"[startup] Ingested {pdf_path.name} → {added} chunks ({is_code})")
+
+
+# Modern Async Lifespan Handler for Startup/Shutdown tasks
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Execute startup auto-ingestion
+    _ingest_standards_dir()
+    yield
+
+
+app = FastAPI(
+    title="BIS RAG & Graph Verification Engine",
+    description="Backend API for citation-based RAG and NetworkX knowledge graph license verification.",
+    version="1.0.0",
+    lifespan=lifespan
+)
+
+# CORS Configuration:
+# Support Vercel production/preview domains and local development environments.
+_default_origins = [
+    "https://bis-rag-teal.vercel.app",
+    "https://bis-rag.vercel.app",
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:8001",
+]
+_frontend_url = os.getenv("FRONTEND_URL", "")
+_custom_origins = [u.strip().rstrip("/") for u in _frontend_url.split(",") if u.strip()]
+_allowed_origins = list(dict.fromkeys([u.rstrip("/") for u in _default_origins + _custom_origins]))
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_allowed_origins,
+    allow_origin_regex=r"https://.*\.vercel\.app",
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=600,  # Cache preflight OPTIONS checks for 10 minutes
+)
+
+
+# ── Schemas ───────────────────────────────────────────────────────────────────
 
 class RAGQueryRequest(BaseModel):
     query: str
@@ -172,18 +170,30 @@ class GraphAddNodeResponse(BaseModel):
     error: Optional[str] = None
 
 
+# ── Health Check Endpoints ───────────────────────────────────────────────────
+
+@app.get("/")
+async def root_health_check():
+    """Primary root endpoint for Render health checks (fixes 404 logs)."""
+    return {
+        "status": "online",
+        "service": "BIS RAG & Graph Verification Engine",
+        "version": "1.0.0",
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+
+
 @app.get("/health")
 async def health():
-    return {"status": "ok", "timestamp": datetime.utcnow().isoformat()}
+    return {"status": "ok", "timestamp": datetime.now(timezone.utc).isoformat()}
 
+
+# ── RAG Endpoints ─────────────────────────────────────────────────────────────
 
 @app.post("/api/rag/query", response_model=RAGQueryResponse)
 async def query_rag(request: RAGQueryRequest):
     try:
-        # ── Translation layer ──────────────────────────────────────────────
-        # Translate non-English queries to English for ChromaDB similarity
-        # search. The original query is kept so the LLM can respond in the
-        # user's native language.
+        # Translation layer for non-English queries
         english_query, was_translated = await translate_query(request.query)
 
         retrieval = vector_store.query(
@@ -193,13 +203,10 @@ async def query_rag(request: RAGQueryRequest):
         )
         contexts = retrieval.get("results", [])
 
-        # Graph-RAG expansion: pull neighbouring clauses / cross-references
-        # from Neo4j and merge them into the context block before reranking.
+        # Graph-RAG expansion: pull neighbouring clauses / cross-references from Neo4j
         if neo4j_graph_store is not None:
             contexts = expand_contexts(contexts, neo4j_graph_store, max_nodes=8)
 
-        # Pass both the original query (for native-language response) and
-        # the translated query (for fallback keyword matching) to synthesizer.
         result: SynthesisResult = synthesizer.synthesize(
             query=request.query,
             contexts=contexts,
@@ -236,7 +243,6 @@ def _process_and_ingest_pdf(dest_path: Path, filename: str):
     is_code = str(chunks[0].metadata.get("is_code", "")).strip()
     already_indexed = is_code in set(vector_store.get_all_codes())
 
-    # Mirror to Neo4j either way (MERGE makes it idempotent).
     if neo4j_graph_store is not None:
         neo4j_graph_store.ingest_chunks(chunks)
 
@@ -255,16 +261,6 @@ def _process_and_ingest_pdf(dest_path: Path, filename: str):
 
 @app.post("/api/rag/upload", response_model=UploadIngestResponse)
 async def upload_and_ingest_pdf(file: UploadFile = File(...)):
-    """
-    Upload an IS codebook PDF and ingest it end-to-end.
-
-    The file is persisted to data/standards/, parsed into chunks, embedded
-    and upserted into the active vector store (Pinecone or ChromaDB), and
-    mirrored into the Neo4j graph store when configured. Re-uploading an
-    already-indexed IS code is idempotent: the vector upsert is skipped and
-    the graph mirror is refreshed instead. FastAPI/Swagger only — not exposed
-    in the Streamlit frontend.
-    """
     try:
         original_name = Path(file.filename or "upload.pdf").name
         if not original_name.lower().endswith(".pdf"):
@@ -274,7 +270,6 @@ async def upload_and_ingest_pdf(file: UploadFile = File(...)):
 
         dest = STANDARDS_DIR / original_name
 
-        # Stream the upload to disk with a size guard.
         size = 0
         with dest.open("wb") as out:
             while True:
@@ -307,6 +302,26 @@ async def upload_and_ingest_pdf(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/api/rag/codes")
+async def list_is_codes():
+    try:
+        codes = vector_store.get_all_codes()
+        return {"codes": codes}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/rag/codes/{is_code}")
+async def delete_is_code(is_code: str):
+    try:
+        deleted = vector_store.delete_by_is_code(is_code)
+        return {"success": True, "deleted_chunks": deleted}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ── Graph Endpoints ───────────────────────────────────────────────────────────
+
 @app.post("/api/graph/verify")
 async def verify_graph(request: GraphVerifyRequest):
     target_id = request.license_id or request.product_id
@@ -323,7 +338,7 @@ async def verify_graph(request: GraphVerifyRequest):
 @app.post("/api/graph/nodes/add", response_model=GraphAddNodeResponse)
 async def add_graph_node(request: GraphAddNodeRequest):
     try:
-        payload = request.dict()
+        payload = request.model_dump()
         result = graph_engine.add_graph_node(payload)
         return GraphAddNodeResponse(**result)
     except Exception as e:
@@ -335,23 +350,5 @@ async def export_graph():
     try:
         data = graph_engine.get_graph_data()
         return JSONResponse(content=data)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/api/rag/codes")
-async def list_is_codes():
-    try:
-        codes = vector_store.get_all_codes()
-        return {"codes": codes}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.delete("/api/rag/codes/{is_code}")
-async def delete_is_code(is_code: str):
-    try:
-        deleted = vector_store.delete_by_is_code(is_code)
-        return {"success": True, "deleted_chunks": deleted}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
