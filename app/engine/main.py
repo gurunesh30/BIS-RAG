@@ -92,6 +92,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
+# 1. Initialize FastAPI app
 app = FastAPI(
     title="BIS RAG & Graph Verification Engine",
     description="Backend API for citation-based RAG and NetworkX knowledge graph license verification.",
@@ -99,8 +100,7 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS Configuration:
-# Support Vercel production/preview domains and local development environments.
+# 2. Configure & Register CORSMiddleware IMMEDIATELY after app initialization
 _default_origins = [
     "https://bis-rag-teal.vercel.app",
     "https://bis-rag.vercel.app",
@@ -124,8 +124,7 @@ app.add_middleware(
 )
 
 
-# ── Schemas ───────────────────────────────────────────────────────────────────
-
+# 3. Request/Response Schemas
 class RAGQueryRequest(BaseModel):
     query: str
     is_code: Optional[str] = None
@@ -170,7 +169,7 @@ class GraphAddNodeResponse(BaseModel):
     error: Optional[str] = None
 
 
-# ── Health Check Endpoints ───────────────────────────────────────────────────
+# 4. Route Handlers & Endpoints (All declared AFTER CORSMiddleware)
 
 @app.get("/")
 async def root_health_check():
@@ -188,12 +187,9 @@ async def health():
     return {"status": "ok", "timestamp": datetime.now(timezone.utc).isoformat()}
 
 
-# ── RAG Endpoints ─────────────────────────────────────────────────────────────
-
 @app.post("/api/rag/query", response_model=RAGQueryResponse)
 async def query_rag(request: RAGQueryRequest):
     try:
-        # Translation layer for non-English queries
         english_query, was_translated = await translate_query(request.query)
 
         retrieval = vector_store.query(
@@ -203,7 +199,6 @@ async def query_rag(request: RAGQueryRequest):
         )
         contexts = retrieval.get("results", [])
 
-        # Graph-RAG expansion: pull neighbouring clauses / cross-references from Neo4j
         if neo4j_graph_store is not None:
             contexts = expand_contexts(contexts, neo4j_graph_store, max_nodes=8)
 
@@ -319,8 +314,6 @@ async def delete_is_code(is_code: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
-# ── Graph Endpoints ───────────────────────────────────────────────────────────
 
 @app.post("/api/graph/verify")
 async def verify_graph(request: GraphVerifyRequest):
