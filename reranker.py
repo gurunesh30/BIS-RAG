@@ -49,6 +49,16 @@ class Reranker:
 
     def _get_model(self):
         if self._model is None:
+            import os
+
+            if (
+                os.getenv("HF_HUB_OFFLINE") == "1"
+                or os.getenv("DISABLE_LOCAL_RERANKER", "1") == "1"
+                or os.getenv("RENDER") == "true"
+            ):
+                self._model = False
+                return None
+
             try:
                 from sentence_transformers import CrossEncoder
 

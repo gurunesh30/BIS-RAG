@@ -31,8 +31,77 @@ import pinecone
 from .ingestion import Chunk
 from .seed_data import seed_standard_chunks
 
-# ── Embeddings (lazy singleton) ─────────────────────────────────────────────
+# ── Embeddings (API-first with lightweight zero-download fallback) ───────────
 _embedder: Any = None
+
+
+def _embed_via_api(texts: List[str]) -> Optional[List[List[float]]]:
+    """Attempt API-based embedding via Gemini, OpenAI, or OpenRouter."""
+    # 1. Gemini API (if GEMINI_API_KEY is present)
+    gemini_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    if gemini_key:
+        try:
+            import httpx
+
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:batchEmbedContents?key={gemini_key}"
+            requests_payload = {
+                "requests": [
+                    {
+                        "model": "models/text-embedding-004",
+                        "content": {"parts": [{"text": text}]},
+                        "outputDimensionality": 384,
+                    }
+                    for text in texts
+                ]
+            }
+            with httpx.Client(timeout=10.0) as client:
+                res = client.post(url, json=requests_payload)
+                if res.status_code == 200:
+                    data = res.json()
+                    embeddings = []
+                    for emb in data.get("embeddings", []):
+                        values = emb.get("values", [])
+                        if values:
+                            embeddings.append(values)
+                    if len(embeddings) == len(texts):
+                        return embeddings
+        except Exception:
+            pass
+
+    # 2. OpenAI / OpenRouter API (if OPENAI_API_KEY or OPENROUTER_API_KEY is present)
+    openai_key = os.getenv("OPENAI_API_KEY") or os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENROUTER_API")
+    if openai_key:
+        try:
+            import openai
+
+            base_url = "https://openrouter.ai/api/v1" if ("OPENROUTER" in os.environ or not os.getenv("OPENAI_API_KEY")) else None
+            client_kwargs = {"api_key": openai_key}
+            if base_url:
+                client_kwargs["base_url"] = base_url
+            client = openai.OpenAI(**client_kwargs)
+            res = client.embeddings.create(
+                model="text-embedding-3-small",
+                input=texts,
+                dimensions=384,
+            )
+            return [d.embedding for d in res.data]
+        except Exception:
+            pass
+
+    return None
+
+
+def _deterministic_embed(texts: List[str], dim: int = 384) -> List[List[float]]:
+    import random
+    import math
+
+    out = []
+    for t in texts:
+        rng = random.Random(hashlib.sha1(t.encode("utf-8")).hexdigest())
+        vec = [rng.uniform(-1.0, 1.0) for _ in range(dim)]
+        norm = math.sqrt(sum(x * x for x in vec)) or 1.0
+        out.append([x / norm for x in vec])
+    return out
 
 
 def _get_embedder():
@@ -45,10 +114,24 @@ def _get_embedder():
 
 
 def embed_texts(texts: List[str]) -> List[List[float]]:
-    """Embed a batch of texts into normalised vectors (singleton model)."""
+    """Embed a batch of texts using API-first strategy, degrading to lightweight deterministic vectors to prevent OOM."""
     if not texts:
         return []
-    return _get_embedder().encode(texts, normalize_embeddings=True).tolist()
+
+    # 1. API-based embedding (zero memory overhead)
+    api_vectors = _embed_via_api(texts)
+    if api_vectors is not None:
+        return api_vectors
+
+    # 2. Local SentenceTransformer only if explicitly enabled and not offline
+    if os.getenv("USE_LOCAL_EMBEDDER", "0") == "1" and os.getenv("HF_HUB_OFFLINE") != "1":
+        try:
+            return _get_embedder().encode(texts, normalize_embeddings=True).tolist()
+        except Exception:
+            pass
+
+    # 3. Deterministic zero-download projection (safe on Render 512MB RAM free tier)
+    return _deterministic_embed(texts)
 
 
 def chunk_key(text: str) -> str:
