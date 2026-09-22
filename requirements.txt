@@ -1,35 +1,30 @@
-# BIS Conformity Assessment RAG Assistant — production dependencies
-# Pinned for seamless execution on Streamlit Cloud and inside Docker.
+# BIS Conformity Assessment RAG Assistant — optimized production dependencies
+# Cloud-native: managed Pinecone + Neo4j. Local storage drivers (ChromaDB and its
+# kubernetes/grpc/onnxruntime toolchain) are intentionally excluded per
+# spec/reconstruct_docker_image.md.
+#
+# NOTE: torch is NOT listed here. The Dockerfile installs the CPU-only wheel
+# directly from the PyTorch CPU index first, which avoids the multi-GB CUDA
+# bundle. sentence-transformers picks up the already-installed torch.
 
-# Main entrypoint (Streamlit UI) + backend API
-streamlit>=1.37.0
-fastapi>=0.111.0
-uvicorn[standard]>=0.30.0
-python-multipart>=0.0.9
-python-dotenv>=1.0.0
-pydantic>=2.7.0
+# UI / API framework
+streamlit>=1.42.0
+fastapi>=0.110.0
+uvicorn>=0.27.0
 
-# Dense vector storage & embeddings
-chromadb>=0.5.0
-sentence-transformers>=3.0.0
+# Managed databases
+pinecone>=10.0.0
+neo4j>=5.15.0
 
-# Sparse keyword retrieval (exact statutory terms: Scheme-I, IS numbers)
-rank-bm25>=0.2.2
+# Embeddings & document parsing
+sentence-transformers>=2.3.0
+pymupdf>=1.23.0
 
-# Document parsing / layout reconstruction
-PyMuPDF>=1.24.0
-
-# LLM generation via OpenRouter
+# LLM synthesis via OpenRouter + config
 openai>=1.35.0
 httpx>=0.27.0
+python-dotenv>=1.0.0
 
-# Knowledge graph engine
+# Retrieval & local knowledge graph
+rank-bm25>=0.2.2
 networkx>=3.3
-
-# ── Cloud database migration ────────────────────────────────────────────────
-# Pinecone — managed dense vector store
-pinecone>=5.0.0
-# Neo4j — managed graph database (Aura / cloud) for Graph-RAG relations
-neo4j>=5.20.0
-# Dev/test only
-pytest>=8.0.0

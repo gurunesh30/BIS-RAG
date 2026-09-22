@@ -6,9 +6,10 @@
 #   * api — FastAPI backend (RAG query + graph endpoints) on :8000
 #   * ui  — Streamlit assistant on :8501
 #
-# Secrets/config come from the untracked .env file (see .env.example). Cloud
-# mode auto-activates when the corresponding credentials are present; without
-# them both services share a persistent local ChromaDB volume.
+# Secrets/config come from the untracked .env file (see .env.example).
+# This is a cloud-native stack (Pinecone + Neo4j): no local storage volumes.
+# Local ChromaDB fallback is NOT available in this build — it is excluded from
+# requirements.txt per spec/reconstruct_docker_image.md.
 
 services:
   api:
@@ -19,8 +20,6 @@ services:
     command: uvicorn app.engine.main:app --host 0.0.0.0 --port 8000
     env_file:
       - .env
-    volumes:
-      - chroma_data:/app/chroma_db
     ports:
       - "8000:8000"
     restart: unless-stopped
@@ -43,16 +42,9 @@ services:
     command: streamlit run app.py --server.port=8501 --server.address=0.0.0.0
     env_file:
       - .env
-    volumes:
-      - chroma_data:/app/chroma_db
     ports:
       - "8501:8501"
     restart: unless-stopped
     depends_on:
       api:
         condition: service_healthy
-
-volumes:
-  chroma_data:
-    name: bis-rag-chroma
-    external: false
