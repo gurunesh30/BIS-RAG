@@ -114,23 +114,22 @@ def _get_embedder():
 
 
 def embed_texts(texts: List[str]) -> List[List[float]]:
-    """Embed a batch of texts using API-first strategy, degrading to lightweight deterministic vectors to prevent OOM."""
+    """Embed a batch of texts using consistent 384d embedding strategy."""
     if not texts:
         return []
 
-    # 1. API-based embedding (zero memory overhead)
+    # 1. Local SentenceTransformer (fast, consistent 384d all-MiniLM-L6-v2)
+    try:
+        return _get_embedder().encode(texts, normalize_embeddings=True).tolist()
+    except Exception:
+        pass
+
+    # 2. API-based embedding (Gemini / OpenAI / OpenRouter)
     api_vectors = _embed_via_api(texts)
     if api_vectors is not None:
         return api_vectors
 
-    # 2. Local SentenceTransformer only if explicitly enabled and not offline
-    if os.getenv("USE_LOCAL_EMBEDDER", "0") == "1" and os.getenv("HF_HUB_OFFLINE") != "1":
-        try:
-            return _get_embedder().encode(texts, normalize_embeddings=True).tolist()
-        except Exception:
-            pass
-
-    # 3. Deterministic zero-download projection (safe on Render 512MB RAM free tier)
+    # 3. Deterministic zero-download fallback
     return _deterministic_embed(texts)
 
 
@@ -151,6 +150,60 @@ class PineconeStoreConfig:
 
 # Pinecone metadata supports str/int/float/bool and lists of strings only.
 _PAGE_NUM_PATTERN = re.compile(r'\d+')
+
+
+def _extract_text_from_meta(meta: Dict[str, Any]) -> str:
+    """Extract text from metadata supporting all standard RAG and Pinecone UI keys."""
+    if not isinstance(meta, dict):
+        return ""
+    for key in ("text", "content", "body", "page_content", "chunk", "chunk_text", "text_content", "raw_text", "input", "context"):
+        val = meta.get(key)
+        if val and isinstance(val, str) and val.strip():
+            return val.strip()
+    return ""
+
+
+def _extract_is_code_from_meta(meta: Dict[str, Any]) -> str:
+    """Extract IS code from metadata supporting all standard RAG and Pinecone UI keys."""
+    if not isinstance(meta, dict):
+        return ""
+    for key in ("is_code", "isCode", "code", "standard", "is", "document", "doc_id", "filename", "file_name", "source"):
+        val = meta.get(key)
+        if val and isinstance(val, str) and val.strip():
+            return val.strip()
+    return ""
+
+
+def _extract_clause_num_from_meta(meta: Dict[str, Any]) -> str:
+    if not isinstance(meta, dict):
+        return "N/A"
+    for key in ("clause_num", "clause", "section", "clause_number"):
+        val = meta.get(key)
+        if val and str(val).strip():
+            return str(val).strip()
+    return "N/A"
+
+
+def _extract_page_num_from_meta(meta: Dict[str, Any]) -> int:
+    if not isinstance(meta, dict):
+        return 1
+    for key in ("page_num", "page", "page_number"):
+        val = meta.get(key)
+        if val:
+            match = _PAGE_NUM_PATTERN.search(str(val))
+            if match:
+                return int(match.group())
+    return 1
+
+
+def _extract_table_ref_from_meta(meta: Dict[str, Any]) -> str:
+    if not isinstance(meta, dict):
+        return "N/A"
+    for key in ("table_ref", "table", "table_number"):
+        val = meta.get(key)
+        if val and str(val).strip():
+            return str(val).strip()
+    return "N/A"
 
 
 class PineconeVectorStore:
@@ -248,12 +301,16 @@ class PineconeVectorStore:
     @staticmethod
     def _match_code(all_codes: List[str], requested: str) -> Optional[str]:
         clean = requested.strip()
+        clean_num = re.sub(r'^[^\d]*', '', clean).strip()
         for stored in all_codes:
+            stored_clean = stored.strip()
+            stored_num = re.sub(r'^[^\d]*', '', stored_clean).strip()
             if (
-                stored.lower() == clean.lower()
-                or stored.replace(" ", "").lower() == clean.replace(" ", "").lower()
-                or clean.lower() in stored.lower()
-                or stored.lower() in clean.lower()
+                stored_clean.lower() == clean.lower()
+                or stored_clean.replace(" ", "").lower() == clean.replace(" ", "").lower()
+                or clean.lower() in stored_clean.lower()
+                or stored_clean.lower() in clean.lower()
+                or (clean_num and stored_num and clean_num.lower() in stored_num.lower())
             ):
                 return stored
         return None
@@ -269,11 +326,12 @@ class PineconeVectorStore:
         filter_expr = None
         if is_code_filter and is_code_filter.lower() != "all":
             matched = self._match_code(codes, is_code_filter)
-            if matched is None:
-                return {"results": [], "requested_code": is_code_filter, "indexed_codes": codes}
-            filter_expr = {"is_code": {"$eq": matched}}
+            if matched:
+                filter_expr = {"is_code": {"$eq": matched}}
 
         vector = embed_texts([query_text])[0]
+        
+        # 1. Query Pinecone with filter if matched
         response = self._index.query(
             vector=vector,
             top_k=n_results,
@@ -281,17 +339,39 @@ class PineconeVectorStore:
             filter=filter_expr,
             namespace=self.config.namespace,
         )
+        matches = getattr(response, "matches", []) or []
+
+        # 2. If filtered query yielded 0 matches, fallback to unfiltered semantic search
+        if not matches and filter_expr:
+            response = self._index.query(
+                vector=vector,
+                top_k=n_results,
+                include_metadata=True,
+                namespace=self.config.namespace,
+            )
+            matches = getattr(response, "matches", []) or []
 
         formatted = []
-        for match in response.matches:
+        for match in matches:
             meta = match.metadata if isinstance(match.metadata, dict) else {}
+            text = _extract_text_from_meta(meta)
+            if not text:
+                continue
+            is_code = _extract_is_code_from_meta(meta)
+            clause_num = _extract_clause_num_from_meta(meta)
+            page_num = _extract_page_num_from_meta(meta)
+            table_ref = _extract_table_ref_from_meta(meta)
+            chunk_key_val = meta.get("chunk_key") or hashlib.sha1(text.encode("utf-8")).hexdigest()
+
             formatted.append(
                 {
-                    "text": meta.get("text", ""),
+                    "text": text,
                     "metadata": {
-                        key: meta[key]
-                        for key in ("is_code", "clause_num", "page_num", "table_ref", "chunk_key")
-                        if key in meta
+                        "is_code": is_code,
+                        "clause_num": clause_num,
+                        "page_num": page_num,
+                        "table_ref": table_ref,
+                        "chunk_key": chunk_key_val,
                     },
                     "score": round(float(match.score), 4),
                 }
@@ -341,16 +421,24 @@ class PineconeVectorStore:
             fetched = self._index.fetch(ids=batch, namespace=self.config.namespace)
             for vector_id, vector in (fetched.vectors or {}).items():
                 meta = vector.metadata if isinstance(vector.metadata, dict) else {}
-                text = meta.get("text", "")
+                text = _extract_text_from_meta(meta)
                 if not text:
                     continue
+                is_code = _extract_is_code_from_meta(meta)
+                clause_num = _extract_clause_num_from_meta(meta)
+                page_num = _extract_page_num_from_meta(meta)
+                table_ref = _extract_table_ref_from_meta(meta)
+                chunk_key_val = meta.get("chunk_key") or hashlib.sha1(text.encode("utf-8")).hexdigest()
+
                 docs.append(
                     {
                         "text": text,
                         "metadata": {
-                            key: meta[key]
-                            for key in ("is_code", "clause_num", "page_num", "table_ref", "chunk_key")
-                            if key in meta
+                            "is_code": is_code,
+                            "clause_num": clause_num,
+                            "page_num": page_num,
+                            "table_ref": table_ref,
+                            "chunk_key": chunk_key_val,
                         },
                     }
                 )

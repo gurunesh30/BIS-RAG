@@ -219,24 +219,28 @@ Context Sources:
         # Sort by overlap descending, then score descending
         valid_chunks.sort(key=lambda x: (x[0], x[1]), reverse=True)
 
-        best_overlap, best_score, best_ctx = valid_chunks[0]
+        # Check if any chunk matches the requested code number or text
+        matching_code_chunk = None
+        if requested_code_num:
+            for overlap, score, ctx in valid_chunks:
+                meta = ctx.get('metadata', {})
+                code = str(meta.get('is_code', '')).upper()
+                text = ctx.get('text', '')
+                if requested_code_num in code or requested_code_num in text:
+                    matching_code_chunk = (overlap, score, ctx)
+                    break
+
+        best_tuple = matching_code_chunk or valid_chunks[0]
+        best_overlap, best_score, best_ctx = best_tuple
         best_meta = best_ctx.get('metadata', {})
-        best_is_code = best_meta.get('is_code', 'N/A')
+        best_is_code = best_meta.get('is_code', '') or (f"IS {requested_code_num}" if requested_code_num else "Indexed Standard")
 
-        # If requested code does not match retrieved chunk code
-        if requested_code_num and requested_code_num not in best_is_code:
+        # If requested code is explicitly absent from all retrieved chunks and text
+        if requested_code_num and (matching_code_chunk is None) and best_overlap == 0 and best_score < 0.3:
             answer = (
-                f"The requested standard (IS {requested_code_num}) is not currently indexed in the vector database. "
-                f"The database currently contains indexed codebook: {best_is_code}. "
-                f"Please upload the PDF document for IS {requested_code_num} to search its clauses."
-            )
-            return SynthesisResult(answer=answer, citations=[])
-
-        # If overlap is 0 and score is poor, return no relevant match
-        if best_overlap == 0 and best_score < 0.2:
-            answer = (
-                f"No relevant clauses found in {best_is_code} matching '{query}'. "
-                "Please verify the question or upload the specific IS Codebook PDF."
+                f"The requested standard (IS {requested_code_num}) was not found in the retrieved chunks. "
+                f"Retrieved clauses from database: {best_is_code}. "
+                f"Please verify the question or upload the specific IS Codebook PDF."
             )
             return SynthesisResult(answer=answer, citations=[])
 
