@@ -323,6 +323,12 @@ class PineconeVectorStore:
     ) -> Dict[str, Any]:
         codes = self.get_all_codes()
 
+        # Auto-detect explicit IS code in query text if filter is missing/all
+        if not is_code_filter or is_code_filter.lower() == "all":
+            match_code = re.search(r'\bIS\s*(\d+)\b', query_text, re.IGNORECASE)
+            if match_code:
+                is_code_filter = f"IS {match_code.group(1)}"
+
         filter_expr = None
         if is_code_filter and is_code_filter.lower() != "all":
             matched = self._match_code(codes, is_code_filter)
@@ -330,7 +336,7 @@ class PineconeVectorStore:
                 filter_expr = {"is_code": {"$eq": matched}}
 
         vector = embed_texts([query_text])[0]
-        
+
         # 1. Query Pinecone with filter if matched
         response = self._index.query(
             vector=vector,
@@ -341,15 +347,20 @@ class PineconeVectorStore:
         )
         matches = getattr(response, "matches", []) or []
 
-        # 2. If filtered query yielded 0 matches, fallback to unfiltered semantic search
-        if not matches and filter_expr:
-            response = self._index.query(
+        # 2. Fallback to unfiltered search if 0 matches or top score is low (< 0.35)
+        top_score = float(matches[0].score) if matches else 0.0
+        if filter_expr and (not matches or top_score < 0.35):
+            unfiltered_res = self._index.query(
                 vector=vector,
                 top_k=n_results,
                 include_metadata=True,
                 namespace=self.config.namespace,
             )
-            matches = getattr(response, "matches", []) or []
+            unfiltered_matches = getattr(unfiltered_res, "matches", []) or []
+            if unfiltered_matches:
+                unfiltered_top = float(unfiltered_matches[0].score)
+                if not matches or unfiltered_top > top_score:
+                    matches = unfiltered_matches
 
         formatted = []
         for match in matches:
