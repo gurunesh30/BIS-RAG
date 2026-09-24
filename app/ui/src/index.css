@@ -76,49 +76,49 @@
   }
 
   .dark {
-    /* Dark Mode: Midnight Deep Navy & Cyber Indigo Glow */
-    --background: oklch(0.1822 0 0); /* Deep Midnight Navy */
-    --foreground: oklch(0.9288 0.0126 255.5078);
+    /* Dark Mode: Deep Obsidian Base & Crisp High-Contrast Accent */
+    --background: oklch(0.1000 0 0);
+    --foreground: oklch(0.9800 0 0);
 
-    --card: oklch(0.2046 0 0); /* Elevated Dark Card */
-    --card-foreground: oklch(0.9288 0.0126 255.5078);
+    --card: oklch(0.1400 0 0);
+    --card-foreground: oklch(0.9800 0 0);
 
-    --popover: oklch(0.2603 0 0);
-    --popover-foreground: oklch(0.7348 0 0);
+    --popover: oklch(0.1400 0 0);
+    --popover-foreground: oklch(0.9800 0 0);
 
-    --primary: oklch(0.4365 0.1044 156.7556); /* Vibrant Electric Indigo */
-    --primary-foreground: oklch(0.9213 0.0135 167.1556);
+    --primary: oklch(0.6500 0.2000 160.0000); /* Vibrant Mint/Emerald Glow */
+    --primary-foreground: oklch(0.0500 0 0);
 
-    --secondary: oklch(0.2603 0 0); /* Neon Cyan */
-    --secondary-foreground: oklch(0.9851 0 0);
+    --secondary: oklch(0.2000 0 0);
+    --secondary-foreground: oklch(0.9800 0 0);
 
-    --muted: oklch(0.2393 0 0);
-    --muted-foreground: oklch(0.7122 0 0);
+    --muted: oklch(0.2000 0 0);
+    --muted-foreground: oklch(0.8000 0 0);
 
-    --accent: oklch(0.3132 0 0); /* Glowing Fuchsia */
-    --accent-foreground: oklch(0.9851 0 0);
+    --accent: oklch(0.2200 0 0);
+    --accent-foreground: oklch(0.9800 0 0);
 
-    --destructive: oklch(0.3123 0.0852 29.7877);
-    --destructive-foreground: oklch(0.9368 0.0045 34.3092);
+    --destructive: oklch(0.5500 0.2200 28.0000);
+    --destructive-foreground: oklch(0.9800 0 0);
 
-    --border: oklch(0.2809 0 0);
-    --input: oklch(0.2603 0 0);
-    --ring: oklch(0.8003 0.1821 151.7110);
+    --border: oklch(0.3800 0 0);
+    --input: oklch(0.3800 0 0);
+    --ring: oklch(0.6500 0.2000 160.0000);
 
-    --chart-1: oklch(0.8003 0.1821 151.7110);
-    --chart-2: oklch(0.7137 0.1434 254.6240);
-    --chart-3: oklch(0.7090 0.1592 293.5412);
-    --chart-4: oklch(0.8369 0.1644 84.4286);
-    --chart-5: oklch(0.7845 0.1325 181.9120);
+    --chart-1: oklch(0.6500 0.2000 160.0000);
+    --chart-2: oklch(0.7000 0.1800 259.0000);
+    --chart-3: oklch(0.7000 0.2000 292.0000);
+    --chart-4: oklch(0.8000 0.1800 84.0000);
+    --chart-5: oklch(0.7500 0.1500 181.0000);
 
-    --sidebar: oklch(0.1822 0 0);
-    --sidebar-foreground: oklch(0.6301 0 0);
-    --sidebar-primary: oklch(0.4365 0.1044 156.7556);
-    --sidebar-primary-foreground: oklch(0.9213 0.0135 167.1556);
-    --sidebar-accent: oklch(0.3132 0 0);
-    --sidebar-accent-foreground: oklch(0.9851 0 0);
-    --sidebar-border: oklch(0.2809 0 0);
-    --sidebar-ring: oklch(0.8003 0.1821 151.7110);
+    --sidebar: oklch(0.1000 0 0);
+    --sidebar-foreground: oklch(0.9500 0 0);
+    --sidebar-primary: oklch(0.6500 0.2000 160.0000);
+    --sidebar-primary-foreground: oklch(0.0500 0 0);
+    --sidebar-accent: oklch(0.2000 0 0);
+    --sidebar-accent-foreground: oklch(0.9800 0 0);
+    --sidebar-border: oklch(0.3800 0 0);
+    --sidebar-ring: oklch(0.6500 0.2000 160.0000);
     --radius: 0.5rem;
     --font-sans: Outfit, sans-serif;
     --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
