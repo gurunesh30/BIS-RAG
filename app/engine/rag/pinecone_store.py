@@ -35,9 +35,9 @@ from .seed_data import seed_standard_chunks
 _embedder: Any = None
 
 
-def _embed_via_api(texts: List[str]) -> Optional[List[List[float]]]:
-    """Attempt API-based embedding via Gemini, OpenAI, or OpenRouter."""
-    # 1. Gemini API (if GEMINI_API_KEY is present)
+def _embed_via_api(texts: List[str], target_dim: int = 384) -> Optional[List[List[float]]]:
+    """Attempt API-based embedding via Gemini, OpenAI, or OpenRouter with target dimension matching."""
+    # 1. Gemini API (if GEMINI_API_KEY / GOOGLE_API_KEY is present)
     gemini_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
     if gemini_key:
         try:
@@ -49,7 +49,7 @@ def _embed_via_api(texts: List[str]) -> Optional[List[List[float]]]:
                     {
                         "model": "models/text-embedding-004",
                         "content": {"parts": [{"text": text}]},
-                        "outputDimensionality": 384,
+                        "outputDimensionality": target_dim,
                     }
                     for text in texts
                 ]
@@ -61,7 +61,7 @@ def _embed_via_api(texts: List[str]) -> Optional[List[List[float]]]:
                     embeddings = []
                     for emb in data.get("embeddings", []):
                         values = emb.get("values", [])
-                        if values:
+                        if values and len(values) == target_dim:
                             embeddings.append(values)
                     if len(embeddings) == len(texts):
                         return embeddings
@@ -82,9 +82,11 @@ def _embed_via_api(texts: List[str]) -> Optional[List[List[float]]]:
             res = client.embeddings.create(
                 model="text-embedding-3-small",
                 input=texts,
-                dimensions=384,
+                dimensions=target_dim,
             )
-            return [d.embedding for d in res.data]
+            data = [d.embedding for d in res.data]
+            if len(data) == len(texts) and len(data[0]) == target_dim:
+                return data
         except Exception:
             pass
 
