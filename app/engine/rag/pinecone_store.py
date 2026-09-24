@@ -324,6 +324,9 @@ class PineconeVectorStore:
         n_results: int = 5,
         is_code_filter: Optional[str] = None,
     ) -> Dict[str, Any]:
+        if self.count() == 0:
+            self._seed_initial_standards()
+
         codes = self.get_all_codes()
 
         # Auto-detect explicit IS code in query text if filter is missing/all
@@ -472,11 +475,15 @@ class PineconeVectorStore:
     # ── Maintenance ─────────────────────────────────────────────────────────
 
     def _seed_initial_standards(self) -> None:
+        """Seed bundled standard chunks if Pinecone index is empty (e.g. after account switch)."""
         try:
             if self.count() == 0:
-                self.add_chunks(seed_standard_chunks())
-        except Exception:  # noqa: BLE001 — seeding is best-effort
-            pass
+                print("[PineconeStore] Empty index detected (vector count = 0). Auto-seeding initial IS standard chunks...")
+                chunks = seed_standard_chunks()
+                self.add_chunks(chunks)
+                print(f"[PineconeStore] Successfully auto-seeded {len(chunks)} standard chunks into new index.")
+        except Exception as exc:  # noqa: BLE001 — seeding is best-effort
+            print(f"[PineconeStore] Seeding warning: {exc}")
 
     def count(self) -> int:
         stats = self._index.describe_index_stats()
