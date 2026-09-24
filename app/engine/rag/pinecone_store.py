@@ -116,23 +116,24 @@ def _get_embedder():
 
 
 def embed_texts(texts: List[str]) -> List[List[float]]:
-    """Embed a batch of texts using consistent 384d embedding strategy."""
+    """Embed a batch of texts using zero-OOM API-first strategy, falling back to local embedder or deterministic vectors."""
     if not texts:
         return []
 
-    # 1. Local SentenceTransformer (fast, consistent 384d all-MiniLM-L6-v2)
-    try:
-        return _get_embedder().encode(texts, normalize_embeddings=True).tolist()
-    except Exception:
-        pass
-
-    # 2. API-based embedding (Gemini / OpenAI / OpenRouter)
-    api_vectors = _embed_via_api(texts)
+    # 1. API-based embedding (Gemini / OpenAI / OpenRouter - Zero RAM overhead)
+    api_vectors = _embed_via_api(texts, target_dim=384)
     if api_vectors is not None:
         return api_vectors
 
-    # 3. Deterministic zero-download fallback
-    return _deterministic_embed(texts)
+    # 2. Local SentenceTransformer (only if already loaded or explicitly allowed)
+    if os.getenv("USE_LOCAL_EMBEDDER", "1") == "1" and os.getenv("HF_HUB_OFFLINE") != "1":
+        try:
+            return _get_embedder().encode(texts, normalize_embeddings=True).tolist()
+        except Exception:
+            pass
+
+    # 3. Deterministic zero-download projection (safe on Render 512MB RAM free tier)
+    return _deterministic_embed(texts, dim=384)
 
 
 def chunk_key(text: str) -> str:
