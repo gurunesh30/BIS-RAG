@@ -101,6 +101,8 @@ app = FastAPI(
 )
 
 # 2. Configure & Register CORSMiddleware IMMEDIATELY after app initialization
+# Mandatory: Middleware MUST be registered before any routes or sub-routers are added
+# to ensure Access-Control-Allow-Origin headers are attached to all preflight OPTIONS requests.
 _default_origins = [
     "https://bis-rag-teal.vercel.app",
     "https://bis-rag.vercel.app",
