@@ -22,7 +22,7 @@ export function GraphVerifier() {
   const [verificationResult, setVerificationResult] = useState<VerifyResponse | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [graphData, setGraphData] = useState<ExportGraphResponse | null>(null)
-  const [isExporting, setIsExporting] = useState(false)
+  const [isExporting, setIsExporting] = useState(true)
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   const handleSearch = async (licenseId: string) => {
@@ -54,7 +54,14 @@ export function GraphVerifier() {
   }
 
   useEffect(() => {
-    void handleExport()
+    let cancelled = false
+    exportGraph()
+      .then((data) => { if (!cancelled) setGraphData(data) })
+      .catch(() => {
+        // empty
+      })
+      .finally(() => { if (!cancelled) setIsExporting(false) })
+    return () => { cancelled = true }
   }, [])
 
   return (
