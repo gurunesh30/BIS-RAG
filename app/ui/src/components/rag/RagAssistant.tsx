@@ -43,17 +43,14 @@ export function RagAssistant() {
   const textAreaRef = useRef<HTMLTextAreaElement>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
 
-  const fetchCodes = async () => {
-    try {
-      const codes = await listIsCodes()
-      setIndexedCodes(codes)
-    } catch {
-      // backend may not be up yet
-    }
-  }
-
   useEffect(() => {
-    void fetchCodes()
+    let cancelled = false
+    listIsCodes()
+      .then((codes) => { if (!cancelled) setIndexedCodes(codes) })
+      .catch(() => {
+        // backend may not be up yet
+      })
+    return () => { cancelled = true }
   }, [])
 
   useEffect(() => {

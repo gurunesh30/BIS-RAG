@@ -20,27 +20,29 @@ export interface LiveLocation {
  * location access or the API is unavailable.
  */
 export function useLiveLocation(): LiveLocation {
-  const [location, setLocation] = useState<LiveLocation>({
-    lat: FALLBACK_LAT,
-    lon: FALLBACK_LON,
-    accuracy: null,
-    status: 'pending',
-    errorMessage: null,
-  })
-
-  const watchIdRef = useRef<number | null>(null)
-
-  useEffect(() => {
-    if (!navigator.geolocation) {
-      setLocation({
+  const [location, setLocation] = useState<LiveLocation>(() => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      return {
         lat: FALLBACK_LAT,
         lon: FALLBACK_LON,
         accuracy: null,
         status: 'fallback',
         errorMessage: 'Geolocation not supported by this browser.',
-      })
-      return
+      }
     }
+    return {
+      lat: FALLBACK_LAT,
+      lon: FALLBACK_LON,
+      accuracy: null,
+      status: 'pending',
+      errorMessage: null,
+    }
+  })
+
+  const watchIdRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    if (!navigator.geolocation) return
 
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {

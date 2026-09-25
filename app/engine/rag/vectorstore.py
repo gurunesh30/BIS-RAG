@@ -104,8 +104,19 @@ class VectorStore:
                 # If requested IS code is not present in vector database, return empty with metadata
                 return {"results": [], "requested_code": is_code_filter, "indexed_codes": all_codes}
 
+        query_kwargs = {
+            "query_texts": [query_text],
+            "n_results": n_results,
+        }
+        if where_filter is not None:
+            query_kwargs["where"] = where_filter
+
+        results = self._collection.query(**query_kwargs)
+
         # If filtered query returns 0 results, fall back to unfiltered search
-        if not results.get("documents") or not results["documents"][0]:
+        if where_filter is not None and (
+            not results.get("documents") or not results["documents"][0]
+        ):
             results = self._collection.query(
                 query_texts=[query_text],
                 n_results=n_results

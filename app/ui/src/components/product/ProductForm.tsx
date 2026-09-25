@@ -27,7 +27,6 @@ export function ProductForm() {
 
   useEffect(() => {
     let cancelled = false
-    setCatalogLoading(true)
     fetchProductCatalog()
       .then((data) => { if (!cancelled) setCatalog(data) })
       .catch(() => { if (!cancelled) setCatalog([]) })
