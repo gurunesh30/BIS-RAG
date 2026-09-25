@@ -12,14 +12,14 @@
     --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
 
     /* Light Mode: High-contrast vivid modern palette */
-    --background: oklch(0.9950 0 0);
-    --foreground: oklch(0.1000 0 0);
+    --background: oklch(0.9850 0 0);
+    --foreground: oklch(0.1800 0 0);
 
-    --card: oklch(1.0000 0 0);
-    --card-foreground: oklch(0.1000 0 0);
+    --card: oklch(0.9900 0 0);
+    --card-foreground: oklch(0.1800 0 0);
 
-    --popover: oklch(1.0000 0 0);
-    --popover-foreground: oklch(0.1000 0 0);
+    --popover: oklch(0.9900 0 0);
+    --popover-foreground: oklch(0.2200 0 0);
 
     --primary: oklch(0.4500 0.1800 160.0000); /* Rich Deep Emerald/Indigo */
     --primary-foreground: oklch(0.9900 0 0);
@@ -48,8 +48,8 @@
 
     --radius: 0.5rem;
 
-    --sidebar: oklch(0.9800 0 0);
-    --sidebar-foreground: oklch(0.1500 0 0);
+    --sidebar: oklch(0.9680 0 0);
+    --sidebar-foreground: oklch(0.2400 0 0);
     --sidebar-primary: oklch(0.4500 0.1800 160.0000);
     --sidebar-primary-foreground: oklch(0.9900 0 0);
     --sidebar-accent: oklch(0.9200 0 0);
