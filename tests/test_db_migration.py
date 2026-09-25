@@ -21,6 +21,7 @@ from app.engine.rag.pipeline import (
     expand_contexts,
     pinecone_configured,
 )
+import app.engine.rag.vectorstore as vectorstore_module
 from app.engine.rag.pinecone_store import (
     PineconeVectorStore,
     PineconeStoreConfig,
@@ -260,10 +261,11 @@ def test_provider_factory_forces_chroma_when_override_set(monkeypatch):
     monkeypatch.setenv("PINECONE_API_KEY", "fake-key")
     monkeypatch.setenv("VECTOR_DB_PROVIDER", "chroma")
     monkeypatch.delenv("PINECONE_HOST", raising=False)
-    from app.engine.rag.vectorstore import VectorStore
+    sentinel = object()
+    monkeypatch.setattr(vectorstore_module, "VectorStore", lambda: sentinel)
 
     assert not pinecone_configured()
-    assert isinstance(create_vector_store(), VectorStore)
+    assert create_vector_store() is sentinel
 
 
 def test_neo4j_store_absent_without_uri(monkeypatch):
