@@ -24,14 +24,14 @@
     --primary: oklch(0.4500 0.1800 160.0000); /* Rich Deep Emerald/Indigo */
     --primary-foreground: oklch(0.9900 0 0);
 
-    --secondary: oklch(0.9200 0 0);
-    --secondary-foreground: oklch(0.1000 0 0);
+    --secondary: oklch(0.9400 0 0);
+    --secondary-foreground: oklch(0.1800 0 0);
 
-    --muted: oklch(0.9200 0 0);
-    --muted-foreground: oklch(0.3000 0 0);
+    --muted: oklch(0.9400 0 0);
+    --muted-foreground: oklch(0.3800 0 0);
 
-    --accent: oklch(0.9200 0 0);
-    --accent-foreground: oklch(0.1000 0 0);
+    --accent: oklch(0.9400 0 0);
+    --accent-foreground: oklch(0.1800 0 0);
 
     --destructive: oklch(0.5000 0.2200 28.0000);
     --destructive-foreground: oklch(0.9900 0 0);
@@ -52,8 +52,8 @@
     --sidebar-foreground: oklch(0.2400 0 0);
     --sidebar-primary: oklch(0.4500 0.1800 160.0000);
     --sidebar-primary-foreground: oklch(0.9900 0 0);
-    --sidebar-accent: oklch(0.9200 0 0);
-    --sidebar-accent-foreground: oklch(0.1000 0 0);
+    --sidebar-accent: oklch(0.9400 0 0);
+    --sidebar-accent-foreground: oklch(0.1800 0 0);
     --sidebar-border: oklch(0.7500 0 0);
     --sidebar-ring: oklch(0.8348 0.1302 160.9080);
     --shadow-color: #000000;
