@@ -37,7 +37,11 @@ const NODE_COLORS: Record<string, string> = {
   License: '#8b5cf6',
   Manufacturer: '#10b981',
   IndianStandard: '#f59e0b',
+  Document: '#f59e0b',
   TestLab: '#ef4444',
+  Clause: '#06b6d4',
+  Section: '#8b5cf6',
+  Entity: '#ec4899',
 }
 const DEFAULT_NODE_COLOR = '#6b7280'
 const TRAVERSED_NODE_COLOR = '#22c55e'

@@ -248,6 +248,67 @@ class Neo4jGraphStore:
 
     # ── Maintenance & diagnostics ───────────────────────────────────────────
 
+    def export_graph(self, limit: int = 500) -> Dict[str, List[Dict[str, Any]]]:
+        """Export nodes and relationships from Neo4j in network visualization format."""
+        query = """
+        MATCH (n)
+        OPTIONAL MATCH (n)-[r]->(m)
+        RETURN n, labels(n)[0] AS n_type, r, type(r) AS rel_type, m, labels(m)[0] AS m_type
+        LIMIT $limit
+        """
+        nodes_dict: Dict[str, Dict[str, Any]] = {}
+        edges_list: List[Dict[str, Any]] = []
+
+        with self._driver.session(database=self.database) as session:
+            records = list(session.run(query, limit=limit))
+
+        for rec in records:
+            n = rec["n"]
+            if n:
+                n_props = dict(n.items())
+                n_id = str(n_props.get("code") or n_props.get("chunk_key") or n_props.get("label") or n_props.get("id") or getattr(n, "element_id", "node"))
+                n_type = rec["n_type"] or "Entity"
+                n_name = str(n_props.get("is_code") or n_props.get("code") or n_props.get("label") or n_id)
+                if n_props.get("clause_num") and n_props.get("is_code"):
+                    n_name = f"{n_props['is_code']} Cl.{n_props['clause_num']}"
+
+                if n_id not in nodes_dict:
+                    nodes_dict[n_id] = {
+                        "id": n_id,
+                        "name": n_name,
+                        "label": n_name,
+                        "type": n_type,
+                        "attributes": n_props,
+                    }
+
+            m = rec["m"]
+            r = rec["r"]
+            if m and r:
+                m_props = dict(m.items())
+                m_id = str(m_props.get("code") or m_props.get("chunk_key") or m_props.get("label") or m_props.get("id") or getattr(m, "element_id", "node"))
+                m_type = rec["m_type"] or "Entity"
+                m_name = str(m_props.get("is_code") or m_props.get("code") or m_props.get("label") or m_id)
+                if m_props.get("clause_num") and m_props.get("is_code"):
+                    m_name = f"{m_props['is_code']} Cl.{m_props['clause_num']}"
+
+                if m_id not in nodes_dict:
+                    nodes_dict[m_id] = {
+                        "id": m_id,
+                        "name": m_name,
+                        "label": m_name,
+                        "type": m_type,
+                        "attributes": m_props,
+                    }
+
+                edges_list.append({
+                    "source": n_id,
+                    "target": m_id,
+                    "relation": rec["rel_type"] or "LINKS_TO",
+                    "type": rec["rel_type"] or "LINKS_TO",
+                })
+
+        return {"nodes": list(nodes_dict.values()), "edges": edges_list}
+
     def stats(self) -> Dict[str, int]:
         with self._driver.session(database=self.database) as session:
             records = list(session.run(_STATS_QUERY))

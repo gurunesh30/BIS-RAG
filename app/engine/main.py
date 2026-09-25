@@ -343,6 +343,14 @@ async def add_graph_node(request: GraphAddNodeRequest):
 @app.get("/api/graph/export")
 async def export_graph():
     try:
+        if neo4j_graph_store is not None:
+            try:
+                neo4j_data = neo4j_graph_store.export_graph()
+                if neo4j_data.get("nodes"):
+                    return JSONResponse(content=neo4j_data)
+            except Exception as exc:
+                print(f"[graph/export] Neo4j export failed, falling back to NetworkX engine: {exc}")
+
         data = graph_engine.get_graph_data()
         return JSONResponse(content=data)
     except Exception as e:
