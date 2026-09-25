@@ -220,64 +220,59 @@ BIS-RAG/
 
 ### Prerequisites
 
-- Python 3.11+
-- Node.js 20+ or Bun
+- Python 3.11
+- [Bun](https://bun.sh) 1.3.14, or Node.js 20.19+ / 22.12+
 - An [OpenRouter](https://openrouter.ai) API key
 
 ### Backend
 
-```bash
-cd app/engine
+Run backend commands from the repository root so package imports and relative data paths resolve correctly.
 
-# Create and activate a virtual environment
+```bash
 python -m venv .venv
 source .venv/bin/activate
 
-# Install dependencies
-pip install -r requirements.txt
+# Managed Pinecone and Neo4j deployment
+python -m pip install -r requirements.txt
 
-# Start the server
+# Start the API
 uvicorn app.engine.main:app --host 0.0.0.0 --port 8001 --reload
 ```
 
-The server starts on `http://localhost:8001`. On first boot, `_ingest_standards_dir()` scans `data/standards/` and indexes any PDFs it finds into ChromaDB. The 10 seed chunks (IS 1786, IS 13252, IS 15885, IS 14286, IS 1489, IS 694, IS 16046, IS 2925) are always available without any PDFs.
+For local ChromaDB development, use `python -m pip install -r app/engine/requirements.txt` instead of the production requirements. The server starts on `http://localhost:8001`. On first boot, `_ingest_standards_dir()` scans `data/standards/` and indexes any PDFs it finds. The bundled seed clauses are always available without any PDFs.
 
 ### Frontend
 
 ```bash
 cd app/ui
-
-# Install dependencies
-bun install        # or: npm install
-
-# Start the dev server
-bun run dev        # or: npm run dev
+bun install --frozen-lockfile
+bun run dev
 ```
 
-The UI is served on `http://localhost:5173` and proxies API calls to `http://localhost:8001`.
+Copy `app/ui/.env.example` to `app/ui/.env.local` when the API does not run at `http://localhost:8001`. The UI is served on `http://localhost:5173` and proxies API calls to the configured backend URL.
 
 ---
 
 ## Configuration
 
-Create a `.env` file in the project root:
-
-```env
-# Required — get from https://openrouter.ai/keys
-OPENROUTER_API_KEY=sk-or-v1-...
-
-# LLM model to use via OpenRouter (default: qwen/qwen3-8b)
-OPENROUTER_MODEL=qwen/qwen3-8b
-
-# Optional — increases MyMemory free translation quota from 5k to 50k chars/day
-MYMEMORY_EMAIL=you@example.com
-```
+Copy `.env.example` to `.env` in the project root and provide only the credentials required by your deployment. All supported credential fields are blank in the template.
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `OPENROUTER_API_KEY` | Yes | — | OpenRouter API key for LLM synthesis |
 | `OPENROUTER_MODEL` | No | `qwen/qwen3-8b` | Any model available on OpenRouter |
-| `MYMEMORY_EMAIL` | No | — | Registered email for MyMemory higher quota |
+| `VECTOR_DB_PROVIDER` | No | `auto` | Use `auto` or force `chroma` |
+| `PINECONE_API_KEY` | For Pinecone | — | Pinecone API key |
+| `PINECONE_INDEX_NAME` | No | `bis-codebooks` | Pinecone index name |
+| `PINECONE_CLOUD` | No | `aws` | Serverless index cloud |
+| `PINECONE_REGION` | No | `us-east-1` | Serverless index region |
+| `NEO4J_URI` | For graph retrieval | — | Neo4j connection URI |
+| `NEO4J_USERNAME` | For graph retrieval | — | Neo4j username |
+| `NEO4J_PASSWORD` | For graph retrieval | — | Neo4j password |
+| `FRONTEND_URL` | No | — | Comma-separated additional CORS origins |
+| `MYMEMORY_EMAIL` | No | — | Registered email for higher translation quota |
+
+Legacy aliases such as `OPENROUTER_API`, `NEO4J_USER`, `GOOGLE_API_KEY`, and `VITE_API_URL` remain accepted by the application, but new deployments should use the canonical names above.
 
 ---
 
