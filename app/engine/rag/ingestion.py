@@ -32,20 +32,38 @@ class PDFIngestionEngine:
         pages = []
         for page_num in range(len(doc)):
             page = doc.load_page(page_num)
-            text = page.get_text()
-            pages.append({
-                "page_num": page_num + 1,
-                "text": text
-            })
+            text = page.get_text() or ""
+            # Clean PDF text artifacts: zero-width spaces, null bytes, and excessive vertical spacing
+            cleaned = text.replace('\u200b', '').replace('\x00', '')
+            lines = [line.strip() for line in cleaned.splitlines() if line.strip()]
+            cleaned_text = "\n".join(lines)
+            if cleaned_text:
+                pages.append({
+                    "page_num": page_num + 1,
+                    "text": cleaned_text
+                })
         doc.close()
         return pages
 
     def extract_is_code(self, text: str, filename: str) -> str:
-        match = self.is_code_pattern.search(text)
-        if match:
-            return match.group(0).upper()
+        # 1. Match explicit IS code in filename (e.g. IS_4151, IS1786, IS-4151)
+        match_fn = re.search(r'IS[_\s\-]*(\d+)', filename, re.IGNORECASE)
+        if match_fn:
+            return f"IS {match_fn.group(1)}"
+
+        # 2. Match leading numeric standard code in filename (e.g. 4151_2015...)
+        match_num_fn = re.search(r'^(\d{3,5})[_\s\-]', filename)
+        if match_num_fn:
+            return f"IS {match_num_fn.group(1)}"
+
+        # 3. Check for IS code in document header text
+        match_text = self.is_code_pattern.search(text[:2000])
+        if match_text:
+            return match_text.group(0).upper()
+
+        # 4. Clean title fallback
         clean_name = re.sub(r'\.pdf$', '', filename, flags=re.IGNORECASE)
-        return clean_name.strip()
+        return clean_name.replace('_', ' ').strip()
 
     def _is_toc_page(self, text: str) -> bool:
         """
